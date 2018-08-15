@@ -1,0 +1,132 @@
+-------------------------
+ Wed Jan 17 12:01:54 EST 2018 
+-------------------------
+
+Change chrm number to simulation number
+z$  zcat SplitPop_nonAfr_20_n1_0.03_n2_0.03.vcf.gz | awk 'BEGIN {OFS="\t"} /^#/{print$0} !/^#/{$1=20 ; print$0}' | gzip -c -> SplitPop_nonAfr_20_n1_0.03_n2_0.03.mod.vcf.gz
+
+
+
+-------------------------
+ Wed Jan 17 12:05:19 EST 2018 
+-------------------------
+
+Keep only archaic (Neanderthal) samples:
+$ vcftools --gzvcf SplitPop_nonAfr_20_n1_0.03_n2_0.03.mod.vcf.gz --keep vcf_keep_archaic.txt --recode --stdout | gzip -c - > SplitPop_nonAfr_20_n1_0.03_n2_0.03.mod.ARCHAIC.vcf.gz
+
+Keep only chimp samples:
+$ vcftools --gzvcf SplitPop_nonAfr_20_n1_0.03_n2_0.03.mod.vcf.gz --keep vcf_keep_chimp.txt --recode --stdout | gzip -c - > SplitPop_nonAfr_20_n1_0.03_n2_0.03.mod.CHIMP.vcf.gz
+
+Keep only modern human samples:
+$ vcftools --gzvcf SplitPop_nonAfr_20_n1_0.03_n2_0.03.mod.vcf.gz --remove vcf_remove_nonmodern.txt --recode --stdout | gzip -c - > SplitPop_nonAfr_20_n1_0.03_n2_0.03.mod.MODERN.vcf.gz
+
+
+-------------------------
+ Wed Jan 17 12:21:48 EST 2018 
+-------------------------
+
+Tried to run sstar calculations
+$ ~/software/anaconda2/bin/python ~/bin/bin_ben/windowed_calculations.py --vcf-has-illumina-chrnums -vcfz SplitPop_nonAfr_20_n1_0.03_n2_0.03.mod.MODERN.vcf.gz -archaic-vcf SplitPop_nonAfr_20_n1_0.03_n2_0.03.mod.ARCHAIC.vcf.gz -indf SplitPop.popfile.gz -target-pops EUR ASN -ref-pops AFR -p 10 -s-star -range 0 500000 -winlen 50000 -winstep 10000 > SplitPop.test.sstar.windowcalc
+
+Got error message regarding ARCHAIC.vcf.gz --> needs to only have 1 archaic sample?
+
+Recoded archaic keep file to only keep Neand1
+
+Reran vcftools to recode ARCHAIC.vcf.gz:
+$ vcftools --gzvcf SplitPop_nonAfr_20_n1_0.03_n2_0.03.mod.vcf.gz --keep vcf_keep_archaic.txt --recode --stdout | gzip -c - > SplitPop_nonAfr_20_n1_0.03_n2_0.03.mod.ARCHAIC.vcf.gz 
+
+
+-------------------------
+ Wed Jan 17 12:24:51 EST 2018 
+-------------------------
+
+Does not seem to like the spearated vcf files?
+$ ~/software/anaconda2/bin/python ~/bin/bin_ben/windowed_calculations.py --vcf-has-illumina-chrnums -vcfz SplitPop_nonAfr_20_n1_0.03_n2_0.03.mod.MODERN.vcf.gz -archaic-vcf SplitPop_nonAfr_20_n1_0.03_n2_0.03.mod.ARCHAIC.vcf.gz -indf SplitPop.popfile.gz -target-pops EUR ASN -ref-pops AFR -p 10 -s-star -range 0 500000 -winlen 50000 -winstep 10000 > SplitPop.test.sstar.windowcalc
+Reading VCF file SplitPop_nonAfr_20_n1_0.03_n2_0.03.mod.ARCHAIC.vcf.gz..
+ with 5770 lines.
+NO MASKING GIVEN - ASSUMING WHOLE GENOME IS PERFECT (hint: this is probably not a good assumption)
+
+Output file is 0 lines long.
+
+Retry keepin the mod.vcf.gz file whole, and input only additional ARCHAIC.vcf.gz
+
+
+-------------------------
+ Wed Jan 17 12:29:37 EST 2018 
+-------------------------
+
+The problem was with the .popfile --> this should not be gzipped before running the Sstar calling pipeline
+
+
+-------------------------
+ Thu Jan 18 11:44:44 EST 2018 
+-------------------------
+
+For Selina's windowcalc_single_file_to_indfiles.pl to work,
+it requires that the output from the Sstar window calculation be placed in a folder called 'RegionFiles'
+and that the output of the script have the extension 'windowcalc_out'
+So:
+$ gzip -dc Tenn.test.0_to_500kb.sstar.gz > RegionFiles/Tenn.test.0_to_500kb.sstar.windowcalc_out
+$ gzip -dc Tenn.test.0_to_50kb.sstar.gz > RegionFiles/Tenn.test.0_to_50kb.sstar.windowcalc_out
+
+
+-------------------------
+ Thu Jan 18 12:03:37 EST 2018 
+-------------------------
+
+When running windowcalc_single_file_to_indfiles.pl,
+It is necessary to first create the folder IndFiles/ , or else the script will fail to run.
+It is possible here to limit which samples are analyzed downstream by pruning the sample_list;
+i.e. I could remove all non-target samples from this list to just look at Eurasian samples.
+
+I have left in all samples for now as a control, since I expect Afr to have 0% Neand, and Neand2 to match 100% with Neand1.
+
+
+-------------------------
+ Thu Jan 18 12:07:07 EST 2018 
+-------------------------
+
+-------------------------
+ Thu Jan 18 12:07:23 EST 2018 
+-------------------------
+
+$ perl ~/Sstar_files/Wrapper_files/windowcalc_single_file_to_indfiles.pl . Tenn.sample_list Tenn.test.0_to_500kb.sstar 2> windowcalc_single_file_to_indfiles.pl.log
+
+
+-------------------------
+ Thu Jan 18 13:01:36 EST 2018 
+-------------------------
+
+$ cat IndFiles/Tenn.test.0_to_500kb.sstar_msp_100.windowcalc_out | awk 'BEGIN {OFS="\t"} NR!=1 {print $1, $2, $3, $3-$2, 13*(($3-$2)/1000)}' > Tenn.neand_callable_bases2
+
+
+-------------------------
+ Thu Jan 18 16:33:47 EST 2018 
+-------------------------
+
+-------------------------
+ Thu Jan 18 16:41:32 EST 2018 
+-------------------------
+
+$ Rscript ~/Sstar_files/Wrapper_files/calculate_qvalue_thresholds.r Tenn.test.0_to_500kb.sstar Tenn.sample_list . 5 > calculate_qvalue_thresholds.r.log
+
+Creates ".sstar_sig_out_withmatchstatus" files in SstarSigFiles/
+for each sample
+
+Notes whether hap1/2 matches sstar sig threshold at FDR of 0.01 or 0.05
+
+
+-------------------------
+ Tue Jan 23 13:55:48 EST 2018 
+-------------------------
+
+$ zcat /Genomics/akeylab/abwolf/SimulatedDemographic/Sstar/test/10Mb_sim/Tenn_nonAfr_1_n1_0.25_n2_0.0.windowcalc_out.gz | awk 'BEGIN {OFS="\t"} NR!=1 { print $1, $2, $3, $3-$2, 13*(($3-$2)/1000)}' | sort -n - | uniq - | bedtools sort -i - > Tenn.neand_callable_bases_10Mb
+
+
+-------------------------
+ Tue Jan 23 13:56:10 EST 2018 
+-------------------------
+
+$ for i in $(seq 1 1 10); do echo $i; cat Tenn.neand_callable_bases_10Mb | awk 'BEGIN {OFS="\t"} {$1="'$i'" ; print $0}' >> Tenn.neand_callable_bases_chr1to10_10Mb; done
+
+

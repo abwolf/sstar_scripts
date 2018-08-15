@@ -1,0 +1,409 @@
+---
+title: "SstarTreeCallsOverlap"
+author: "Aaron Wolf"
+date: "4/10/2018"
+output: html_document
+---
+
+```{r Load Packages}
+library(ggplot2)
+library(dplyr)
+library(data.table)
+library(tidyr)
+library(scales)
+library(grid)
+library(gridExtra)
+library(stringr)
+```
+
+
+```{r Load Data}
+#############################
+# NULL 10K Data
+load('~/DATALab/SimulatedDemographic/Sstar/test/single_sample/null/null_10k.RData')
+
+#############################
+# ADMIX DATA
+outputdir <- '~/DATALab/SimulatedDemographic/Sstar/test/single_sample/0.05_pct/vcfs/'
+ mdl <- 'Tenn_nonAfr'
+ admix <- 'n1_0.05_n2_0.0'
+ maxchrm <- 100
+ dt <- data.table(NULL)
+ for(i in seq(1,as.numeric(maxchrm),by = 1)){
+   print(paste0('Loading chromosome number: ',i))
+ #  for(sampname in samps) {
+     ## read in data #
+     ## and annotate filter
+     ## then write back out
+     infile <- paste0(outputdir, '/RegionFiles/', mdl, "_",i,'_',admix,".windowcalc_out")
+     #infile <- paste0(outputdir, '/SstarSigFiles/', mdl, "_",i,"_",admix,"_msp_110_null_ecdf.sstar_sig_out")
+     dat <- read.table(infile, header=TRUE, na.strings=c("NA", "None",'.'), as.is = TRUE)
+     dat <- as.data.table(dat)
+     dt <- rbind(dt, dat)
+ }
+admix_5pct <- dt
+
+###########################
+# NULL 1K DATA
+ outputdir <- '~/DATALab/SimulatedDemographic/Sstar/test/single_sample/null/'
+ mdl <- 'Tenn_nonAfr'
+ admix <- 'n1_0.0_n2_0.0'
+ maxchrm <- 1000
+ dt <- data.table(NULL)
+ for(i in seq(1,as.numeric(maxchrm),by = 1)){
+   print(paste0('Loading chromosome number: ',i))
+ #  for(sampname in samps) {
+     ## read in data #
+     ## and annotate filter
+     ## then write back out
+     infile <- paste0(outputdir, '/RegionFiles/', mdl, "_",i,'_',admix,".windowcalc_out")
+     #infile <- paste0(outputdir, '/SstarSigFiles/', mdl, "_",i,"_",admix,"_msp_110_null_ecdf.sstar_sig_out")
+     dat <- read.table(infile, header=TRUE, na.strings=c("NA", "None",'.'), as.is = TRUE)
+     dat <- as.data.table(dat)
+     dt <- rbind(dt, dat)
+ }
+null.1k.dt <- dt
+
+###########################
+# TREE CALLS DATA
+outputdir <- '~/DATALab/SimulatedDemographic/Sstar/test/single_sample/0.05_pct/TreeCalls/'
+mdl <- 'Tenn_nonAfr'
+admix <- 'n1_0.05_n2_0.0'
+infile <- paste0(outputdir,'/',mdl,'_ALL_',admix,'.bed.merged')
+TreeCalls.bed <- fread(infile,
+                       col.names=c('msp_ID','strt','end'))
+TreeCalls <- separate(TreeCalls.bed, col = msp_ID, into = c('msp','Ind','chrom','haplotype'), sep = '_', remove = FALSE)
+TreeCalls[,win_len:=end-strt]
+
+##########################
+# BEDMAP INTERSECT DATA
+
+admix_5pct.pvals2 <- admix_5pct.pvals %>% select(msp_ID, winstart, winend, s_star, num_s_star_snps, filter, sstarpval, s_star_hap_1, s_star_hap_2, haplotype) 
+#%>% filter(filter==FALSE)
+options(scipen=10)
+admix_5pct.pvals2 %>% mutate(winstart=str_trim(winstart)) %>% mutate(winend=str_trim(winend))
+write.table(x = admix_5pct.pvals2, file = '~/DATALab/SimulatedDemographic/Sstar/test/single_sample/0.05_pct/temp.SstarScores.ecdf_matchingsnps.bed', quote = FALSE, sep = '\t', row.names = FALSE, col.names = FALSE)
+options(scipen=0)
+##
+admix_5pct.bedmap <- fread('~/DATALab/SimulatedDemographic/Sstar/test/single_sample/0.05_pct/temp.SstarScores.ecdf_matchingsnps.bed.bedmap2',
+                          col.names = c('msp_ID','winstart','winend','s_star','num_s_star_snps','filter','sstarpval','s_star_hap_1','s_star_hap_2','haplotype','int_count','int_bases','int_bases_uniq','int_bases_uniq_freq'),
+                          sep = '\t')
+
+admix_5pct.merged.bedmap <- fread('~/DATALab/SimulatedDemographic/Sstar/test/single_sample/0.05_pct/temp.SstarScores.ecdf_matchingsnps.bed.merged.bedmap',
+                          col.names = c('msp_ID','winstart','winend','int_count','int_bases','int_bases_uniq','int_bases_uniq_freq'),
+                          sep = '\t')
+admix_5pct.merged.bedmap[,win_len:=winend-winstart]
+
+###########################
+
+admix_5pct.match_pvals <- fread('~/DATALab/SimulatedDemographic/Sstar/test/single_sample/0.05_pct/0.05_pct_afr-eur_vs_neand1_isf-0.0001_pvalues.txt',
+                                col.names=c('chrom','winstart','winend','isf','isfd','ID','pop','match_pct','match_pvalue','matching_windows','overlap_bp','overlap_informative_sites'))
+admix_5pct.match_pvals <- admix_5pct.match_pvals %>% 
+  filter(pop=='EUR') %>%
+  separate(col = ID, into = c('msp_ID','haplotype'), sep = ':', remove = TRUE)
+admix_5pct.match_pvals[,haplotype:=ifelse(test = haplotype==0,yes = 1,no = 2)]
+admix_5pct.match_pvals[,msp_ID:=paste0(msp_ID,'_',chrom,'_',haplotype)]
+
+
+```
+
+
+```{r Call S*pvals}
+admix_5pct[, filter := (s_star <= 0)]
+admix_5pct[,sstarpval := 0.00]  # make new column of double type
+admix_5pct[,sstarpval := NA]  # replace values with NA
+admix_5pct[filter==FALSE, "sstarpval" := 1]  ## initiate with value 1 if window passed filters
+
+
+null.dt[, filter := (s_star <= 0)]
+null.dt[,"sstarpval" := 0.00]  # make new column of double type
+null.dt[,"sstarpval" := NA]  # replace values with NA
+null.dt[filter==FALSE, "sstarpval" := 1]  ## initiate with value 1 if window passed filters
+
+############################
+# Calculate ecdfs for num_s_star_snps
+for( i in which(sort(unique(as.numeric(null.10k.dt$num_s_star_snps)))>0)){
+  print(i)
+  nam <- paste0('null.f.', i, '.ecdf')
+  assign(nam, ecdf(filter(null.10k.dt, s_star!=0, num_s_star_snps==i)$s_star))
+}
+
+null.f.avg.ecdf <- ecdf(filter(null.10k.dt, s_star!=0)$s_star)
+
+ggplot() + stat_ecdf(data = filter(null.10k.dt, num_s_star_snps>0), aes(x=s_star, color=as.factor(num_s_star_snps))) + 
+  scale_x_continuous(breaks=seq(0,150000, 20000), labels = seq(0,150000,20000), expand=c(0,0)) + 
+  coord_cartesian(xlim=c(0,150000))
+
+############################
+# Calculate S*-pvalue from ecdf
+estimate.pval.ecdf.fn <- function(X){
+  s_star <- as.numeric(X[[9]])
+  num_s_star_snps <- as.numeric(X[[10]])
+  if (num_s_star_snps==0){
+    X[[54]] <- NA
+    } else if (num_s_star_snps<=19) {
+    ecdf.fn <- match.fun(paste0("null.f.",num_s_star_snps,".ecdf"))
+    s_star_pval <- 1-ecdf.fn(s_star)
+    X[[54]] <- round(x = s_star_pval, digits = 4)
+    } else if (num_s_star_snps>19) {
+    ecdf.fn <- null.f.19.ecdf
+    s_star_pval <- 1-ecdf.fn(s_star)
+    X[[54]] <- round(x = s_star_pval, digits = 4)
+    }
+  return(X)
+}
+
+####################
+# Apply ecdf function to admixture data
+out <- as.data.table(t(apply(X = admix_5pct,MARGIN = 1,FUN = estimate.pval.ecdf.fn)))
+
+out <- out[,sstarpval_avg:=(1-null.f.avg.ecdf(s_star))]
+out <- out[,sstarpval_2n:=(1-null.f.2.ecdf(s_star))]
+out <- out[,sstarpval_3n:=(1-null.f.3.ecdf(s_star))]
+
+####################
+# Assign S* haplotype
+req.snp.frac <- 0.5
+out$s_star_hap_1 <- (as.numeric(out$n_s_star_snps_hap1) / as.numeric(out$num_s_star_snps)) >= req.snp.frac
+out$s_star_hap_2 <- (as.numeric(out$n_s_star_snps_hap2) / as.numeric(out$num_s_star_snps)) >= req.snp.frac 
+
+###
+# Do you want to include all the windows, regardless of if they had an S*-score or not?
+# Then duplicate the rows w/o scores to assign both haplotypes for seeing how much TreeCall sequence falls in those windows
+out <- rbind(
+  filter(out, !is.na(haplotype)),
+  out %>% filter(is.na(haplotype)) %>% mutate(haplotype=1),
+  out %>% filter(is.na(haplotype)) %>% mutate(haplotype=2)
+  )
+###
+
+#out[,msp_ID:=paste0(ind_id,'_',chrom,'_',haplotype)]
+
+admix_5pct.pvals <- out
+```
+
+
+```{r Modify files}
+admix_5pct.pvals[,chrom:=as.numeric(chrom)]
+admix_5pct.pvals[,winstart:=as.numeric(winstart)]
+admix_5pct.pvals[,winend:=as.numeric(winend)]
+admix_5pct.pvals[,s_star:=as.numeric(s_star)]
+admix_5pct.pvals[,sstarpval:=as.numeric(sstarpval)]
+admix_5pct.pvals[,haplotype:=ifelse(s_star_hap_1==TRUE,yes = 1, no = 2)]
+admix_5pct.pvals[,msp_ID:=paste0(ind_id,'_',chrom,'_',haplotype)]
+admix_5pct.pvals <- admix_5pct.pvals  %>% arrange(chrom, winstart, winend)
+
+
+admix_5pct.pvals <- admix_5pct.pvals %>% left_join(select(admix_5pct.match_pvals, msp_ID, match_pct, winstart, winend, match_pvalue)) %>% as.data.table()
+
+TreeCalls[,chrom:=as.numeric(chrom)]
+TreeCalls[,haplotype:=as.numeric(haplotype)]
+TreeCalls[,strt:=as.numeric(strt)]
+TreeCalls[,end:=as.numeric(end)]
+```
+
+
+```{r}
+################################
+# Plot of Haplotype position, S*-score, sstarpval, match_pval, TreeCalls
+
+ggplot() + 
+  geom_point(data=filter(admix_5pct.pvals, chrom<=15, chrom>15-5, filter==FALSE), aes(x=winstart, y=s_star)) + 
+  geom_point(data=filter(admix_5pct.pvals, chrom<=15, chrom>15-5, filter==FALSE, sstarpval<0.1), aes(x=winstart, y=s_star), color="blue", shape="open",size=4) +
+  geom_point(data=filter(admix_5pct.pvals, chrom<=15, chrom>15-5, filter==FALSE, match_pvalue<0.1), aes(x=winstart, y=s_star), color="darkorange") +
+  geom_rect(data=filter(TreeCalls, chrom<=15, chrom>15-5), aes(xmin=strt, xmax=end, ymin=max(admix_5pct.pvals$s_star), ymax=max(admix_5pct.pvals$s_star)+5000), fill="red", color="red") +
+  facet_grid(chrom~haplotype) + 
+  scale_x_continuous(breaks=seq(from = 0, to = 1000000,by = 100000), limits = c(0,1000000), expand = c(0, 0)) +
+  scale_y_continuous(breaks=seq(from = 0, to = max(admix_5pct.pvals$s_star), by=25000)) +
+  scale_colour_manual(breaks=c("sstarpval_0.01","matchpval_0.01"), values = c("darkorange","blue")) +
+  theme(axis.text.x = element_text(angle = 70, hjust = 1))
+##############################  
+# Create sets of plots, 1 per haplotype, in sets of 5 chromosomes
+
+for( i in seq(5, 100, 5)){
+  print(i)
+  nam <- paste0('plot.', i, '.sstar')
+  assign(nam,
+    ggplot() + 
+    geom_point(data=filter(admix_5pct.pvals, chrom<=i, chrom>i-5, filter==FALSE), aes(x=winstart, y=s_star), size=0.5, position="identity") + 
+#      geom_point(data=filter(admix_5pct.pvals, chrom<=i, chrom>i-5, filter==FALSE), aes(x=winstart, y=s_star)) + 
+      geom_point(data=filter(admix_5pct.pvals, chrom<=i, chrom>i-5, filter==FALSE, sstarpval<0.1), aes(x=winstart, y=s_star, color="sstarpval_0.1"), color="blue", shape="open",size=4, position="identity") +
+      geom_point(data=filter(admix_5pct.pvals, chrom<=i, chrom>i-5, match_pvalue<0.1), aes(x=winstart, y=s_star, color="matchpval_0.1"), color="darkorange", position="identity", size=1) +
+      geom_rect(data=filter(TreeCalls, chrom<=i, chrom>i-5), aes(xmin=strt, xmax=end, ymin=max(admix_5pct.pvals$s_star), ymax=max(admix_5pct.pvals$s_star)+7000), fill="red", color="red") +
+    facet_grid(chrom~haplotype) + 
+    scale_x_continuous(breaks=seq(from = 0, to = 1000000,by = 100000), limits = c(0,1000000), expand = c(0, 0)) +
+    scale_y_continuous(breaks=seq(from = 0, to = max(admix_5pct.pvals$s_star), by=50000), labels = (scales::scientific)) +
+    scale_color_manual(breaks=c("sstarpval_0.1","matchpval_0.1"), values = c("blue","darkorange")) +
+    coord_cartesian(xlim=c(0,1000000), ylim=c(0,max(admix_5pct.pvals$s_star)) ) +
+    theme(axis.text.x = element_text(angle = 70, hjust = 1, size = 5),
+          axis.text.y = element_text(size=5),
+          plot.margin=unit(c(0,0,0,0), "lines"))
+    )
+}
+###############################
+grid1 <- grid.arrange(plot.5.sstar, plot.10.sstar, plot.15.sstar, plot.20.sstar, plot.25.sstar, plot.30.sstar, plot.35.sstar, plot.40.sstar, plot.45.sstar, plot.50.sstar, ncol=4)
+
+grid2 <- grid.arrange(plot.55.sstar, plot.60.sstar, plot.65.sstar, plot.70.sstar, plot.75.sstar, plot.80.sstar, plot.85.sstar, plot.90.sstar, plot.95.sstar, plot.100.sstar, ncol=4)
+
+################
+################
+
+for( i in seq(5, 100, 5)){
+  print(i)
+  nam <- paste0('plot.', i, '.sstarpval')
+  assign(nam,
+    ggplot() + 
+    geom_point(data=filter(admix_5pct.pvals, chrom<=i, chrom>i-5, s_star>0), aes(x=winstart, y=(s_star/max(admix_5pct.pvals$s_star))), size=0.5, position="identity", color="darkgrey") + 
+    geom_point(data=filter(admix_5pct.pvals, chrom<=i, chrom>i-5, sstarpval<0.1), aes(x=winstart, y=(1-sstarpval), color="sstarpval_0.1"), color="blue", shape="open",size=4, position="identity") +
+#    geom_point(data=filter(admix_5pct.pvals, chrom<=i, chrom>i-5, sstarpval_avg<0.1), aes(x=winstart, y=(1-sstarpval), color="sstarpval_0.1"), color="darkgreen", shape="open",size=4, position="identity") +
+#      geom_point(data=filter(admix_5pct.pvals, chrom<=i, chrom>i-5, sstarpval_2n<0.1), aes(x=winstart, y=(1-sstarpval), color="sstarpval_0.1"), color="red", shape="open",size=4, position="identity") +
+#      geom_point(data=filter(admix_5pct.pvals, chrom<=i, chrom>i-5, sstarpval_3n<0.1), aes(x=winstart, y=(1-sstarpval), color="sstarpval_0.1"), color="purple", shape="open",size=4, position="identity") +
+    geom_point(data=filter(admix_5pct.pvals, chrom<=i, chrom>i-5, match_pvalue<0.1), aes(x=winstart, y=(1-match_pvalue), color="matchpval_0.1"), color="darkorange", position="identity", size=1) +
+    geom_rect(data=filter(TreeCalls, chrom<=i, chrom>i-5), aes(xmin=strt, xmax=end, ymin=1.1, ymax=1.2), fill="red", color="red") +
+    facet_grid(chrom~haplotype) + 
+    scale_x_continuous(breaks=seq(from = 0, to = 1000000,by = 100000), limits = c(0,1000000), expand = c(0, 0)) +
+    scale_y_continuous(breaks=seq(from = 0, to = 1.25, by=0.25)) +
+    scale_color_manual(breaks=c("sstarpval_0.1","matchpval_0.1"), values = c("blue","darkorange")) +
+    coord_cartesian(xlim=c(0,1000000), ylim=c(0,1.25) ) +
+    theme(axis.text.x = element_text(angle = 70, hjust = 1, size = 5),
+          axis.text.y = element_text(size=5),
+          plot.margin=unit(c(0,0,0,0), "lines"))
+    )
+}
+###############################
+grid1 <- grid.arrange(plot.5.sstarpval, plot.10.sstarpval, plot.15.sstarpval, plot.20.sstarpval, plot.25.sstarpval, plot.30.sstarpval, plot.35.sstarpval, plot.40.sstarpval, plot.45.sstarpval, plot.50.sstarpval, ncol=4)
+
+grid2 <- grid.arrange(plot.55.sstarpval, plot.60.sstarpval, plot.65.sstarpval, plot.70.sstarpval, plot.75.sstarpval, plot.80.sstarpval, plot.85.sstarpval, plot.90.sstarpval, plot.95.sstarpval, plot.100.sstarpval, ncol=4)
+
+
+```
+
+
+```{r}
+##########################
+# Amount of S*seq called per replicate
+admix_5pct.merged.bedmap.sum_Sstar_bases <- admix_5pct.merged.bedmap %>% group_by(msp_ID) %>% summarize(sum_Sstar_bases = sum(win_len)) %>% as.data.table()
+
+#########################
+# Amount of overlapped S*seq per replicate
+admix_5pct.bedmap.sum_overlapped_seq <- admix_5pct.bedmap %>% filter(int_count>0) %>% group_by(msp_ID) %>% summarize(sum_overlapped_seq = sum(win_len)) %>% as.data.table()
+
+admix_5pct.bedmap.sum_overlapped_seq <- right_join(x = admix_5pct.bedmap.sum_overlapped_seq, y = unique(select(admix_5pct.bedmap, msp_ID))) %>% replace_na(replace = list(sum_overlapped_seq=0))
+####
+admix_5pct.merged.bedmap[,win_len:=winend-winstart]
+admix_5pct.merged.bedmap.sum_overlapped_seq <- admix_5pct.merged.bedmap %>% filter(int_count>0) %>% group_by(msp_ID) %>% summarize(sum_overlapped_seq = sum(win_len)) %>% as.data.table()
+
+admix_5pct.merged.bedmap.sum_overlapped_seq <- right_join(x = admix_5pct.merged.bedmap.sum_overlapped_seq, y = unique(select(admix_5pct.bedmap, msp_ID))) %>% replace_na(replace = list(sum_overlapped_seq=0))
+
+admix_5pct.merged.bedmap.sum_overlapped_seq <- full_join(x = admix_5pct.merged.bedmap.sum_overlapped_seq, y = admix_5pct.merged.bedmap.sum_Sstar_bases) %>% mutate(frac_overlapped_seq=sum_overlapped_seq/sum_Sstar_bases)
+
+
+ggplot() + geom_histogram(data = filter(admix_5pct.merged.bedmap.sum_overlapped_seq, sum_overlapped_seq!=0), aes(x=sum_overlapped_seq/1000), binwidth=5) +
+  geom_density(data = filter(admix_5pct.merged.bedmap.sum_overlapped_seq, sum_overlapped_seq!=0), aes(x=sum_overlapped_seq/1000, y=..density..*1500)) +
+  scale_x_continuous(breaks=(seq(0,500,25)), limits=c(0,500), expand = c(0,0))
+#### # As fraction of total S*called sequence
+ggplot() + geom_histogram(data = filter(admix_5pct.merged.bedmap.sum_overlapped_seq, sum_overlapped_seq!=0),aes(x=frac_overlapped_seq), binwidth=0.01) +
+  geom_density(data = filter(admix_5pct.merged.bedmap.sum_overlapped_seq, sum_overlapped_seq!=0), aes(x=frac_overlapped_seq, y=..density..*5)) +
+  scale_x_continuous(breaks=(seq(0,1,0.05)), limits = c(-0.01,1.01))
+
+##########################
+# Amount of overlapped TreeCall seq across replicates
+admix_5pct.merged.bedmap.sum_int_bases <- admix_5pct.merged.bedmap %>% group_by(msp_ID) %>% summarize(sum_int_bases = sum(int_bases)) %>% as.data.table()
+admix_5pct.merged.bedmap.sum_int_bases <- full_join(x = admix_5pct.merged.bedmap.sum_int_bases, y = admix_5pct.merged.bedmap.sum_Sstar_bases) %>% mutate(frac_int_bases=sum_int_bases/sum_Sstar_bases)
+
+
+ggplot() + 
+  geom_histogram(data=filter(admix_5pct.merged.bedmap.sum_int_bases, sum_int_bases!=0), aes(x=sum_int_bases/1000), binwidth=5)+
+  geom_density(data=filter(admix_5pct.merged.bedmap.sum_int_bases, sum_int_bases!=0), aes(x=sum_int_bases/1000, y=..density..*400))+
+  scale_x_continuous(breaks = seq(0,500,25), limits=c(0,500), expand=c(0,0))
+
+ggplot() + 
+  geom_histogram(data=filter(admix_5pct.merged.bedmap.sum_int_bases, sum_int_bases!=0), aes(x=frac_int_bases), binwidth=0.01) +
+  geom_density(data=filter(admix_5pct.merged.bedmap.sum_int_bases, sum_int_bases!=0), aes(x=frac_int_bases, y=..density..))
+
+
+
+# #############################
+# # Frequency of overlap of TreeCall and S* per replicate
+# admix_5pct.merged.bedmap.sum_int_count <- admix_5pct.merged.bedmap %>% group_by(msp_ID) %>% summarize(sum_int_count=sum(int_count)) %>% as.data.table()
+# 
+# admix_5pct.bedmap.sum_int_count <- admix_5pct.bedmap %>% group_by(msp_ID) %>% summarize(sum_int_count=sum(int_count)) %>% as.data.table()
+# 
+# ggplot() + geom_histogram(data=admix_5pct.merged.bedmap.sum_int_count, aes(x=sum_int_count), binwidth=0.25, fill="blue", alpha=0.5) + 
+#   geom_histogram(data=admix_5pct.bedmap.sum_int_count, aes(x=sum_int_count), binwidth = 0.25, fill="red", alpha=0.5)
+
+```
+
+
+
+```{r}
+
+admix_5pct.bedmap <- admix_5pct.bedmap %>% inner_join(select(admix_5pct.match_pvals, msp_ID, match_pct, winstart, winend, match_pvalue))
+admix_5pct.bedmap <- admix_5pct.bedmap %>% inner_join(select(admix_5pct.match_pvals, msp_ID, match_pct, winstart, winend, match_pvalue, match_pct, overlap_bp, overlap_informative_sites)) %>% as.data.table()
+
+
+admix_5pct.bedmap %>% filter(s_star!=0) %>% filter(sstarpval<0.05)
+
+ggplot(data=filter(admix_5pct.bedmap, s_star!=0)) + geom_density(aes(x=sstarpval), fill='blue', alpha=0.75) +
+  geom_density(aes(x=match_pct))
+
+
+ggplot(data=filter(admix_5pct.bedmap, s_star!=0)) + geom_point(aes(x=s_star, y=match_pct)) + geom_smooth(method = 'lm')
+
+
+
+ggplot(data=filter(admix_5pct.bedmap, s_star!=0)) + geom_point(aes(x=s_star, y=match_pvalue))
+
+
+```
+
+
+```{r}
+for( i in seq(5, 100, 5)){
+  print(i)
+  nam <- paste0('plot.', i, '.matchpval')
+  assign(nam,
+  ggplot() + 
+    geom_point(data=filter(admix_5pct.match_pvals, chrom<=i, chrom>i-5), aes(x=winstart, y=(1-match_pvalue)), size=0.3, color="grey") +
+    geom_rect(data=filter(TreeCalls, chrom<=i, chrom>i-5), aes(xmin=strt, xmax=end, ymin=1.1, ymax=1.2), fill="red", color="red") +
+    geom_point(data=filter(admix_5pct.match_pvals, chrom<=i, chrom>i-5, match_pvalue<0.2), aes(x=winstart, y=(1-match_pvalue)), size=0.5, color="green") +
+    geom_point(data=filter(admix_5pct.match_pvals, chrom<=i, chrom>i-5, match_pvalue<0.15), aes(x=winstart, y=(1-match_pvalue)), size=0.5, color="blue") +
+    geom_point(data=filter(admix_5pct.match_pvals, chrom<=i, chrom>i-5, match_pvalue<0.1), aes(x=winstart, y=(1-match_pvalue)), size=0.5, color="darkorange") +
+    facet_grid(chrom~haplotype) + 
+    scale_x_continuous(breaks=seq(from = 0, to = 1000000,by = 100000), limits = c(0,1000000), expand = c(0, 0)) +
+    scale_y_continuous(breaks = seq(0,1.25,0.25)) +
+#  scale_y_continuous(breaks=seq(from = 0, to = max(admix_5pct.pvals$s_star), by=25000)) +
+    scale_colour_manual(breaks=c("sstarpval_0.01","matchpval_0.01"), values = c("darkorange","blue")) +
+    theme(axis.text.x = element_text(angle = 70, hjust = 1))
+  )
+}
+
+###############################
+grid1 <- grid.arrange(plot.5.matchpval, plot.10.matchpval, plot.15.matchpval, plot.20.matchpval, plot.25.matchpval, plot.30.matchpval, plot.35.matchpval, plot.40.matchpval, plot.45.matchpval, plot.50.matchpval, ncol=4)
+
+grid2 <- grid.arrange(plot.55.matchpval, plot.60.matchpval, plot.65.matchpval, plot.70.matchpval, plot.75.matchpval, plot.80.matchpval, plot.85.matchpval, plot.90.matchpval, plot.95.matchpval, plot.100.matchpval, ncol=4)
+
+###############################
+
+dt <- admix_5pct.match_pvals %>% select(match_pvalue, overlap_bp) %>% round(digits=2) %>% group_by(match_pvalue) %>% summarise(sum_overlap_bp=sum(overlap_bp)) %>% arrange(match_pvalue) %>% as.data.table()
+
+ggplot(data=dt) + geom_point(aes(x=match_pvalue, sum_overlap_bp)) + geom_smooth(aes(x=match_pvalue,y=sum_overlap_bp), method = 'loess')
+
+tot_overlap_bp <- sum(admix_5pct.match_pvals$overlap_bp)
+pct99 <- 0.99*tot_overlap_bp
+pct90 <- 0.9*tot_overlap_bp
+pct50 <- 0.5*tot_overlap_bp
+
+z <- 0
+i <- 1
+while( z < pct50 ) {
+  z = z + dt[i,2,with=FALSE][[1]]
+  p = dt[i,1,with=FALSE][[1]]
+  print(c(z, i, p))
+  i = i+1
+}
+
+
+```
+
+

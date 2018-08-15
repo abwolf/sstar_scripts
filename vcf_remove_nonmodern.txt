@@ -1,0 +1,4 @@
+msp_0	Neand1	Neand1
+msp_1	Neand2	Neand2
+msp_1010	Chimp	Chimp
+msp_1011	Deni	Deni

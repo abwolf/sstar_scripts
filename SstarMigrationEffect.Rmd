@@ -1,0 +1,423 @@
+---
+title: "SstarMigrationEffect"
+author: "Aaron Wolf"
+date: "4/18/2018"
+output: html_document
+---
+
+
+```{r Load Packages}
+library(ggplot2)
+library(dplyr)
+library(data.table)
+library(tidyr)
+library(scales)
+library(grid)
+library(gridExtra)
+library(stringr)
+```
+
+```{r}
+require(bit64)
+###########################
+# ADMIX DATA 0 Migration
+
+outputdir <- '~/DATALab/SimulatedDemographic/Sstar/test/no_migration/0migration/vcfs/'
+ mdl <- 'Tenn_nonAfr'
+ admix <- 'n1_0.05_n2_0.0'
+ maxchrm <- 100
+ dt <- data.table(NULL)
+ for(i in seq(1,as.numeric(maxchrm),by = 1)){
+    print(paste0('Loading chromosome number: ',i))
+    infile <- paste0(outputdir, '/RegionFiles/', mdl, "_",i,'_',admix,".windowcalc_out.gz")
+    dat <- read.table(gzfile(infile), header=TRUE, na.strings=c("NA", "None",'.'), as.is = TRUE)
+    dat <- as.data.table(dat)
+    dt <- rbind(dt, dat)
+ }
+admix_5pct.0migration <- dt
+
+##############
+# NULL DATA
+
+outputdir <- '~/DATALab/SimulatedDemographic/Sstar/test/no_migration/0migration/null/'
+mdl <- 'Tenn_nonAfr'
+admix <- 'n1_0.0_n2_0.0'
+sim_chrms <- fread(paste0(outputdir,"Tenn.chr_list"))
+dt <- data.table(NULL)
+for( i in seq(1,nrow(sim_chrms),by = 1)){
+    c <- sim_chrms[i][[1]]
+    print(paste0('Loading chromosome number: ',c, i))
+    infile <- paste0(outputdir, '/RegionFiles/', mdl, "_",c,'_',admix,".windowcalc_out.gz")
+    dat <- read.table(gzfile(infile), header=TRUE, na.strings=c("NA", "None",'.'), as.is = TRUE)
+    dat <- as.data.table(dat)
+    dt <- rbind(dt, dat)
+}
+null.10k.0migration.dt <- dt
+
+###########################
+# TREE CALLS DATA
+outputdir <- '~/DATALab/SimulatedDemographic/Sstar/test/to.delete/0migration/TreeCalls/'
+mdl <- 'Tenn_nonAfr'
+admix <- 'n1_0.05_n2_0.0'
+infile <- paste0(outputdir,'/',mdl,'_ALL_',admix,'.bed.merged')
+TreeCalls.bed <- fread(infile,
+                       col.names=c('msp_ID','strt','end'))
+TreeCalls <- separate(TreeCalls.bed, col = msp_ID, into = c('msp','Ind','chrom','haplotype'), sep = '_', remove = FALSE)
+TreeCalls[,win_len:=end-strt]
+
+###########################
+# Match_pct pvalues
+
+## Neand_Derived sites
+for (i in list(0,0.1,1)){
+  #print(i)
+  fname = paste0('pvalue_table_0.05_pct-AFR_EUR_matchto_Neand1.informative_site_range_',i,'.tsv')
+  print(fname)
+  outputdir = '~/DATALab/SimulatedDemographic/Sstar/test/no_migration//0migration/null/sims_1_to_10k-AFR_EUR_matchto_Neand1.derived_in_archaic.windows-50000-10000/'
+  dtname = paste0('admix_5pct.0migration.N_Der.isc_',i,'.match_pvals')
+  dt <- fread(paste0(outputdir,'/',fname),
+                      header=TRUE,
+                      col.names = c('chr', 'winstart', 'winend', 'isc', 'haplotype', 'population', 'match_pct', 'match_pvalue', 'matching_windows', 'overlap_bp', 'overlap_informative_sites'))
+  dt <- dt %>% 
+    filter(population=='EUR') %>%
+    separate(col = haplotype, into = c('msp_ID','haplotype'), sep = ':', remove = TRUE)
+  dt[,haplotype:=ifelse(test = haplotype==0,yes = 1,no = 2)]
+  dt[,msp_ID:=paste0(msp_ID,'_',chr,'_',haplotype)]
+  
+  assign(x = dtname, value = dt)
+}
+
+## Neand_or_MH_Derived sites
+for (i in list(0,0.1,1)){
+  #print(i)
+  fname = paste0('pvalue_table_0.05_pct-AFR_EUR_matchto_Neand1.informative_site_range_',i,'.tsv')
+  print(fname)
+  outputdir = '~/DATALab/SimulatedDemographic/Sstar/test/no_migration//0migration/null/sims_1_to_10k-AFR_EUR_matchto_Neand1.derived_in_archaic_or_modern.windows-50000-10000/'
+  dtname = paste0('admix_5pct.0migration.N_MH_Der.isc_',i,'.match_pvals')
+  dt <- fread(paste0(outputdir,'/',fname),
+              header=TRUE,
+              col.names = c('chr', 'winstart', 'winend', 'isc', 'haplotype', 'population', 'match_pct', 'match_pvalue', 'matching_windows', 'overlap_bp', 'overlap_informative_sites'))
+  dt <- dt %>% 
+    filter(population=='EUR') %>%
+    separate(col = haplotype, into = c('msp_ID','haplotype'), sep = ':', remove = TRUE)
+  dt[,haplotype:=ifelse(test = haplotype==0,yes = 1,no = 2)]
+  dt[,msp_ID:=paste0(msp_ID,'_',chr,'_',haplotype)]
+  
+  assign(x = dtname, value = dt)
+}
+
+```
+
+```{r}
+admix_5pct.0migration[, filter := (s_star <= 0)]
+admix_5pct.0migration[,sstarpval_region_ind_snps := 0.00]  # make new column of double type
+admix_5pct.0migration[,sstarpval_region_ind_snps := NA]  # replace values with NA
+admix_5pct.0migration[filter==FALSE, "sstarpval_region_ind_snps" := 1]  ## initiate with value 1 if window passed filters
+
+#################################
+# admix_5pct.0migration[, filter := (s_star <= 0)]
+# admix_5pct.0migration[,sstarpval_sstar_snps := 0.00]  # make new column of double type
+# admix_5pct.0migration[,sstarpval_sstar_snps := NA]  # replace values with NA
+# admix_5pct.0migration[filter==FALSE, "sstarpval_sstar_snps" := 1]  ## initiate with value 1 if window passed filters
+# 
+# admix_5pct.0migration[,sstarpval_tot_snps := 0.00]  # make new column of double type
+# admix_5pct.0migration[,sstarpval_tot_snps := NA]  # replace values with NA
+# admix_5pct.0migration[filter==FALSE, "sstarpval_tot_snps" := 1]  ## initiate with value 1 if window passed filters
+#################################
+
+null.10k.0migration.dt [, filter := (s_star <= 0)]
+null.10k.0migration.dt [,"sstarpval" := 0.00]  # make new column of double type
+null.10k.0migration.dt [,"sstarpval" := NA]  # replace values with NA
+null.10k.0migration.dt [filter==FALSE, "sstarpval" := 1]  ## initiate with value 1 if window passed filters
+
+############################
+# Calculate ecdfs for n_region_ind_snps
+null.dt <- null.10k.0migration.dt
+#for( i in which(sort(unique(as.numeric(null.10k.0migration.dt$n_region_ind_snps)))>0)){
+for( i in sort(unique(as.numeric(null.dt$n_region_ind_snps)))){
+  if(i>0){
+  print(i)
+  nam <- paste0('null.f.region_ind.', i, '.ecdf')
+  if(nrow(filter(null.dt, s_star!=0, n_region_ind_snps==i))>0){
+    assign(nam, ecdf(filter(null.dt, s_star!=0, n_region_ind_snps==i)$s_star))
+  }}
+}
+
+#for( i in which(sort(unique(as.numeric(null.10k.0migration.dt$n_region_ind_snps)))>0)){
+#  print(i)
+#  nam <- paste0('null.f.region_ind.', i, '.ecdf')
+#   if(nrow(filter(null.10k.0migration.dt, s_star!=0, n_region_ind_snps==i))>0){
+#   assign(nam, ecdf(filter(null.10k.0migration.dt, s_star!=0, n_region_ind_snps==i)$s_star))
+#   }
+# }
+
+#######################################
+# # Calculate ecdfs for num_s_star_snps
+# for( i in which(sort(unique(as.numeric(null.10k.0migration.dt$num_s_star_snps)))>0)){
+#   print(i)
+#   nam <- paste0('null.f.sstar.', i, '.ecdf')
+#   if(nrow(filter(null.10k.0migration.dt, s_star!=0, num_s_star_snps==i))>0){
+#   assign(nam, ecdf(filter(null.10k.0migration.dt, s_star!=0, num_s_star_snps==i)$s_star))
+#   }
+# }
+# 
+# # Calculate ecdfs for n_snps
+# for( i in which(sort(unique(as.numeric(null.10k.0migration.dt$n_snps)))>0)){
+#   print(i)
+#   nam <- paste0('null.f.tot.', i, '.ecdf')
+#   if(nrow(filter(null.10k.0migration.dt, s_star!=0, n_snps==i))>0){
+#   assign(nam, ecdf(filter(null.10k.0migration.dt, s_star!=0, n_snps==i)$s_star))
+#   }
+# }
+
+#######################################
+###################
+# null.f.avg.ecdf <- ecdf(filter(null.10k.0migration.dt, s_star!=0)$s_star)
+# 
+# ggplot() + stat_ecdf(data = filter(null.10k.0migration.dt, num_s_star_snps>0), aes(x=s_star, color=as.factor(num_s_star_snps))) 
+# + 
+#   scale_x_continuous(breaks=seq(0,150000, 20000), labels = seq(0,150000,20000), expand=c(0,0)) + 
+#   coord_cartesian(xlim=c(0,150000))
+###################
+
+############################
+# Calculate S*-pvalue from ecdf
+
+estimate.pval.ecdf.region_ind.fn <- function(X, max_snps){
+  s_star <- as.numeric(X[["s_star"]])
+  n_snps <- as.numeric(X[["n_region_ind_snps"]])
+  if (n_snps==0){
+    X[["sstarpval_region_ind_snps"]] <- NA
+    } else if (n_snps<=max_snps) {
+    if( exists(paste0("null.f.region_ind.",n_snps,".ecdf")) ){
+      ecdf.fn <- match.fun(paste0("null.f.region_ind.",n_snps,".ecdf"))
+      s_star_pval <- 1-ecdf.fn(s_star)
+      X[["sstarpval_region_ind_snps"]] <- round(x = s_star_pval, digits = 4)
+      }
+    } else if (n_snps>max_snps) {
+    ecdf.fn <- match.fun(paste0("null.f.region_ind.",max_snps,".ecdf"))
+    s_star_pval <- 1-ecdf.fn(s_star)
+    X[["sstarpval_region_ind_snps"]] <- round(x = s_star_pval, digits = 4)
+    }
+  return(X)
+}
+
+#############################################
+# estimate.pval.ecdf.sstar.fn <- function(X){
+#   s_star <- as.numeric(X[["s_star"]])
+#   n_snps <- as.numeric(X[["num_s_star_snps"]])
+#   if (n_snps==0){
+#     X[["sstarpval_sstar_snps"]] <- NA
+#     } else if (n_snps<=25) {
+#     if( exists(paste0("null.f.sstar.",n_snps,".ecdf")) ){
+#       ecdf.fn <- match.fun(paste0("null.f.sstar.",n_snps,".ecdf"))
+#       s_star_pval <- 1-ecdf.fn(s_star)
+#       X[["sstarpval_sstar_snps"]] <- round(x = s_star_pval, digits = 4)
+#       }
+#     } else if (n_snps>25) {
+#     ecdf.fn <- null.f.sstar.25.ecdf
+#     s_star_pval <- 1-ecdf.fn(s_star)
+#     X[["sstarpval_sstar_snps"]] <- round(x = s_star_pval, digits = 4)
+#     }
+#   return(X)
+# }
+# 
+# 
+# estimate.pval.ecdf.tot.fn <- function(X){
+#   s_star <- as.numeric(X[["s_star"]])
+#   n_snps <- as.numeric(X[["n_snps"]])
+#   if (n_snps==0){
+#     X[["sstarpval_tot_snps"]] <- NA
+#     } else if (n_snps<=151) {
+#     if( exists(paste0("null.f.tot.",n_snps,".ecdf")) ){
+#       ecdf.fn <- match.fun(paste0("null.f.tot.",n_snps,".ecdf"))
+#       s_star_pval <- 1-ecdf.fn(s_star)
+#       X[["sstarpval_tot_snps"]] <- round(x = s_star_pval, digits = 4)
+#       }
+#     } else if (n_snps>151) {
+#     ecdf.fn <- null.f.tot.151.ecdf
+#     s_star_pval <- 1-ecdf.fn(s_star)
+#     X[["sstarpval_tot_snps"]] <- round(x = s_star_pval, digits = 4)
+#     }
+#   return(X)
+# }
+
+#############################################
+####################
+# Apply ecdf function to admixture data
+
+out <- as.data.table(t(apply(X = admix_5pct.0migration,MARGIN = 1,FUN = estimate.pval.ecdf.region_ind.fn, max_snps=244)))
+
+out <- as.data.table(t(apply(X = out,MARGIN = 1,FUN = estimate.pval.ecdf.sstar.fn)))
+out <- as.data.table(t(apply(X = out,MARGIN = 1,FUN = estimate.pval.ecdf.tot.fn)))
+
+
+####################
+# Assign S* haplotype
+req.snp.frac <- 0.5
+out$s_star_hap_1 <- (as.numeric(out$n_s_star_snps_hap1) / as.numeric(out$num_s_star_snps)) >= req.snp.frac
+out$s_star_hap_2 <- (as.numeric(out$n_s_star_snps_hap2) / as.numeric(out$num_s_star_snps)) >= req.snp.frac 
+
+####################
+# Do you want to include all the windows, regardless of if they had an S*-score or not?
+# Then duplicate the rows w/o scores to assign both haplotypes for seeing how much TreeCall sequence falls in those windows
+# out <- rbind(
+#   filter(out, !is.na(haplotype)),
+#   out %>% filter(is.na(haplotype)) %>% mutate(haplotype=1),
+#   out %>% filter(is.na(haplotype)) %>% mutate(haplotype=2)
+#   )
+# ###
+# 
+# #out[,msp_ID:=paste0(ind_id,'_',chrom,'_',haplotype)]
+# 
+# admix_5pct.0migration.pvals = out
+#####################
+```
+
+```{r Modify files}
+out[,chrom:=as.numeric(chrom)]
+out[,winstart:=as.numeric(winstart)]
+out[,winend:=as.numeric(winend)]
+out[,s_star:=as.numeric(s_star)]
+#out[,sstarpval_tot_snps:=as.numeric(sstarpval_tot_snps)]
+#out[,sstarpval_sstar_snps:=as.numeric(sstarpval_sstar_snps)]
+out[,sstarpval_region_ind_snps:=as.numeric(sstarpval_region_ind_snps)]
+out[,s_star_hap_1:=as.character(s_star_hap_1)]
+out[,s_star_hap_2:=as.character(s_star_hap_2)]
+
+hap_1 = out[s_star_hap_1==TRUE & s_star_hap_2==FALSE]
+hap_2 = out[s_star_hap_1==FALSE & s_star_hap_2==TRUE]
+hap_12 = out[s_star_hap_1==TRUE & s_star_hap_2==TRUE]
+hap_NA = out[is.na(s_star_hap_1) | is.na(s_star_hap_2)]
+
+hap_1[,haplotype:=1]
+hap_2[,haplotype:=2]
+hap_12_1  = data.table(hap_12[,haplotype:=1])
+hap_12_2  = data.table(hap_12[,haplotype:=2])
+hap_NA_1  = data.table(hap_NA[,haplotype:=1])
+hap_NA_2  = data.table(hap_NA[,haplotype:=2])
+
+out = rbind(
+  hap_1,
+  hap_2,
+  hap_12_1,
+  hap_12_2,
+  hap_NA_1,
+  hap_NA_2
+)
+
+out[,msp_ID:=paste0(ind_id,'_',chrom,'_',haplotype)]
+out = out  %>% arrange(chrom, winstart, winend)
+
+
+admix_5pct.0migration.match_pvals <- admix_5pct.0migration.N_MH_Der.isc_1.match_pvals
+
+admix_5pct.0migration.pvals <- out %>% left_join((admix_5pct.0migration.match_pvals), by = c('msp_ID', 'winstart', 'winend','haplotype')) %>% as.data.table()
+
+TreeCalls[,chrom:=as.numeric(chrom)]
+TreeCalls[,haplotype:=as.numeric(haplotype)]
+TreeCalls[,strt:=as.numeric(strt)]
+TreeCalls[,end:=as.numeric(end)]
+```
+
+
+```{r}
+for( i in seq(5, 100, 5)){
+  print(i)
+  nam <- paste0('plot.', i, '.sstar')
+  assign(nam,
+    ggplot() + 
+    geom_point(data=filter(admix_5pct.0migration.pvals, chrom<=i, chrom>i-5, filter==FALSE), aes(x=winstart, y=s_star), size=0.5, position="identity") + 
+      geom_point(data=filter(admix_5pct.0migration.pvals, chrom<=i, chrom>i-5, filter==FALSE, sstarpval_region_ind_snps<0.01), aes(x=winstart, y=s_star), color="blue", shape="open",size=4, position="identity") +
+      geom_point(data=filter(admix_5pct.0migration.pvals, chrom<=i, chrom>i-5, match_pvalue<0.1), aes(x=winstart, y=s_star), color="darkorange", position="identity", size=1) +
+      geom_rect(data=filter(TreeCalls, chrom<=i, chrom>i-5), aes(xmin=strt, xmax=end, ymin=max(admix_5pct.0migration.pvals$s_star), ymax=max(admix_5pct.0migration.pvals$s_star)+7000), fill="red", color="red") +
+    facet_grid(chrom~haplotype) + 
+    scale_x_continuous(breaks=seq(from = 0, to = 1000000,by = 100000), limits = c(0,1000000), expand = c(0, 0)) +
+    scale_y_continuous(breaks=seq(from = 0, to = max(admix_5pct.0migration.pvals$s_star), by=50000), labels = (scales::scientific)) +
+    coord_cartesian(xlim=c(0,1000000), ylim=c(0,max(admix_5pct.0migration.pvals$s_star)) ) +
+    theme(axis.text.x = element_text(angle = 70, hjust = 1, size = 5),
+          axis.text.y = element_text(size=5),
+          plot.margin=unit(c(0,0,0,0), "lines"))
+    )
+}
+
+###############################
+grid1 <- grid.arrange(plot.5.sstar, plot.10.sstar, plot.15.sstar, plot.20.sstar, plot.25.sstar, plot.30.sstar, plot.35.sstar, plot.40.sstar, plot.45.sstar, plot.50.sstar, ncol=4)
+
+grid2 <- grid.arrange(plot.55.sstar, plot.60.sstar, plot.65.sstar, plot.70.sstar, plot.75.sstar, plot.80.sstar, plot.85.sstar, plot.90.sstar, plot.95.sstar, plot.100.sstar, ncol=4)
+```
+
+
+```{r}
+outputdir <- '~/DATALab/SimulatedDemographic/Sstar/test/no_migration/0migration/'  
+mdl <- 'Tenn_nonAfr'
+admix <- 'n1_0.05_n2_0.0'
+spval <- 0.01
+matchpval <- 0.01
+dt <- admix_5pct.0migration.pvals
+
+####################
+dat_1 <- dt %>%
+    filter(filter=='FALSE') %>%
+    filter(sstarpval_region_ind_snps<=spval) %>%
+    filter(match_pvalue<=matchpval) %>%
+    filter(haplotype==1) %>%
+    select(msp_ID, hap_1_s_start, hap_1_s_end) %>%
+    setnames(c('msp_ID','start','end')) %>%
+    as.data.table()
+  
+dat_2 <- dt %>%
+    filter(filter=='FALSE') %>%
+    filter(sstarpval_region_ind_snps<=spval) %>%
+    filter(match_pvalue<=matchpval) %>%
+    filter(haplotype==2) %>%
+    select(msp_ID, hap_2_s_start, hap_2_s_end) %>%
+    setnames(c('msp_ID','start','end')) %>%
+    as.data.table()
+  
+dat.bed <- rbind(dat_1,dat_2)
+  
+options(scipen=10)
+dat.bed %<>% mutate(start=str_trim(as.character(start),side = "both")) %>% mutate(end=str_trim(as.character(end), side = "both"))
+write.table(x = dat.bed,
+          file = paste0(outputdir,'test.sstar_sig_',spval,'.match_sig_N_',matchpval,'.isc_0','.bed'),
+          #file = paste0(outputdir,mdl,'_','ALL','_',admix,'_msp_ALL','.sstar_sig_out_region_ind_snps.sstar_',spval,'.bed'),
+          quote = FALSE,
+          sep = '\t',
+          row.names = FALSE,
+          col.names = FALSE)
+options(scipen=0)
+
+
+####################
+
+dat_1 <- dt %>%
+    filter(filter=='FALSE') %>%
+    filter(haplotype==1) %>%
+    select(msp_ID, hap_1_s_start, hap_1_s_end, sstarpval_region_ind_snps, match_pvalue) %>%
+    setnames(c('msp_ID','start','end', 'sstarpval_region_ind_snps', 'match_pvalue')) %>%
+    as.data.table()
+  
+dat_2 <- dt %>%
+    filter(filter=='FALSE') %>%
+    filter(haplotype==2) %>%
+    select(msp_ID, hap_2_s_start, hap_2_s_end, sstarpval_region_ind_snps,match_pvalue) %>%
+    setnames(c('msp_ID','start','end', 'sstarpval_region_ind_snps', 'match_pvalue')) %>%
+    as.data.table()
+  
+dat.bed <- rbind(dat_1,dat_2)
+  
+options(scipen=10)
+dat.bed %<>% mutate(start=str_trim(as.character(start),side = "both")) %>% mutate(end=str_trim(as.character(end), side = "both"))
+write.table(x = dat.bed,
+          file = paste0(outputdir,'test.sstar_sig_','ALL','.match_sig_N_MH_','ALL','.isc_1','.bed'),
+          #file = paste0(outputdir,mdl,'_','ALL','_',admix,'_msp_ALL','.sstar_sig_out_region_ind_snps.sstar_','ALL','.bed'),
+          quote = FALSE,
+          sep = '\t',
+          row.names = FALSE,
+          col.names = FALSE)
+options(scipen=0)
+
+
+```
+

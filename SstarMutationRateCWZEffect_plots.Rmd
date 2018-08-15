@@ -1,0 +1,363 @@
+---
+title: "Untitled"
+author: "Aaron Wolf"
+date: "5/9/2018"
+output: html_document
+---
+
+```{r Load libraries}
+library(ggplot2)
+library(dplyr)
+library(data.table)
+library(tidyr)
+library(scales)
+library(grid)
+library(gridExtra)
+library(stringr)
+library(cowplot)
+```
+
+```{r Load Data}
+###########################
+# ADMIX DATA
+outputdir <- '~/DATALab/SimulatedDemographic/Sstar/test/single_sample/0.05_pct/vcfs/'
+ mdl <- 'Tenn_nonAfr'
+ admix <- 'n1_0.05_n2_0.0'
+ maxchrm <- 100
+ dt <- data.table(NULL)
+ for(i in seq(1,as.numeric(maxchrm),by = 1)){
+   print(paste0('Loading chromosome number: ',i))
+ #  for(sampname in samps) {
+     ## read in data #
+     ## and annotate filter
+     ## then write back out
+     infile <- paste0(outputdir, '/RegionFiles/', mdl, "_",i,'_',admix,".windowcalc_out.gz")
+     #infile <- paste0(outputdir, '/SstarSigFiles/', mdl, "_",i,"_",admix,"_msp_110_null_ecdf.sstar_sig_out")
+     dat <- read.table(gzfile(infile), header=TRUE, na.strings=c("NA", "None",'.'), as.is = TRUE)
+     dat <- as.data.table(dat)
+     dt <- rbind(dt, dat)
+ }
+admix_5pct.full_migration <- dt
+###########################
+###########################
+# ADMIX DATA
+outputdir <- '~/DATALab/SimulatedDemographic/Sstar/test/no_migration/0migration/vcfs/'
+ mdl <- 'Tenn_nonAfr'
+ admix <- 'n1_0.05_n2_0.0'
+ maxchrm <- 100
+ dt <- data.table(NULL)
+ for(i in seq(1,as.numeric(maxchrm),by = 1)){
+   print(paste0('Loading chromosome number: ',i))
+ #  for(sampname in samps) {
+     ## read in data #
+     ## and annotate filter
+     ## then write back out
+     infile <- paste0(outputdir, '/RegionFiles/', mdl, "_",i,'_',admix,".windowcalc_out.gz")
+     #infile <- paste0(outputdir, '/SstarSigFiles/', mdl, "_",i,"_",admix,"_msp_110_null_ecdf.sstar_sig_out")
+     dat <- read.table(gzfile(infile), header=TRUE, na.strings=c("NA", "None",'.'), as.is = TRUE)
+     dat <- as.data.table(dat)
+     dt <- rbind(dt, dat)
+ }
+admix_5pct.0_migration <- dt
+###########################
+###########################
+# ADMIX DATA
+outputdir <- '~/DATALab/SimulatedDemographic/Sstar/test/no_migration/AF_Bmigration/'
+ mdl <- 'Tenn_nonAfr'
+ admix <- 'n1_0.05_n2_0.0'
+ maxchrm <- 100
+ dt <- data.table(NULL)
+ for(i in seq(1,as.numeric(maxchrm),by = 1)){
+   print(paste0('Loading chromosome number: ',i))
+ #  for(sampname in samps) {
+     ## read in data #
+     ## and annotate filter
+     ## then write back out
+     infile <- paste0(outputdir, '/RegionFiles/', mdl, "_",i,'_',admix,".windowcalc_out.gz")
+     #infile <- paste0(outputdir, '/SstarSigFiles/', mdl, "_",i,"_",admix,"_msp_110_null_ecdf.sstar_sig_out")
+     dat <- read.table(gzfile(infile), header=TRUE, na.strings=c("NA", "None",'.'), as.is = TRUE)
+     dat <- as.data.table(dat)
+     dt <- rbind(dt, dat)
+ }
+admix_5pct.AF_B_migration <- dt
+###########################
+###########################
+# ADMIX DATA
+outputdir <- '~/DATALab/SimulatedDemographic/Sstar/test/no_migration/AF_nAFmigration/'
+ mdl <- 'Tenn_nonAfr'
+ admix <- 'n1_0.05_n2_0.0'
+ maxchrm <- 100
+ dt <- data.table(NULL)
+ for(i in seq(1,as.numeric(maxchrm),by = 1)){
+   print(paste0('Loading chromosome number: ',i))
+ #  for(sampname in samps) {
+     ## read in data #
+     ## and annotate filter
+     ## then write back out
+     infile <- paste0(outputdir, '/RegionFiles/', mdl, "_",i,'_',admix,".windowcalc_out.gz")
+     #infile <- paste0(outputdir, '/SstarSigFiles/', mdl, "_",i,"_",admix,"_msp_110_null_ecdf.sstar_sig_out")
+     dat <- read.table(gzfile(infile), header=TRUE, na.strings=c("NA", "None",'.'), as.is = TRUE)
+     dat <- as.data.table(dat)
+     dt <- rbind(dt, dat)
+ }
+admix_5pct.AF_nAF_migration <- dt
+###########################
+###########################
+# Increased mutation rate data
+outputdir <- '~/DATALab/SimulatedDemographic/Sstar/test/single_sample/0.05_pct/mu_2.5e-8/'
+ mdl <- 'Tenn_nonAfr'
+ admix <- 'n1_0.05_n2_0.0'
+ maxchrm <- 100
+ dt <- data.table(NULL)
+ for(i in seq(1,as.numeric(maxchrm),by = 1)){
+   print(paste0('Loading chromosome number: ',i))
+ #  for(sampname in samps) {
+     ## read in data #
+     ## and annotate filter
+     ## then write back out
+     infile <- paste0(outputdir, '/RegionFiles/', mdl, "_",i,'_',admix,".windowcalc_out.gz")
+     #infile <- paste0(outputdir, '/SstarSigFiles/', mdl, "_",i,"_",admix,"_msp_110_null_ecdf.sstar_sig_out")
+     dat <- read.table(gzfile(infile), header=TRUE, na.strings=c("NA", "None",'.'), as.is = TRUE)
+     dat <- as.data.table(dat)
+     dt <- rbind(dt, dat)
+ }
+admix_5pct.2.5_mu <- dt
+###########################
+###########################
+# Increased mutation rate data
+outputdir <- '~/DATALab/SimulatedDemographic/Sstar/test/single_sample/0.05_pct/mu_1.5e-8/'
+ mdl <- 'Tenn_nonAfr'
+ admix <- 'n1_0.05_n2_0.0'
+ maxchrm <- 100
+ dt <- data.table(NULL)
+ for(i in seq(1,as.numeric(maxchrm),by = 1)){
+   print(paste0('Loading chromosome number: ',i))
+ #  for(sampname in samps) {
+     ## read in data #
+     ## and annotate filter
+     ## then write back out
+     infile <- paste0(outputdir, '/RegionFiles/', mdl, "_",i,'_',admix,".windowcalc_out.gz")
+     #infile <- paste0(outputdir, '/SstarSigFiles/', mdl, "_",i,"_",admix,"_msp_110_null_ecdf.sstar_sig_out")
+     dat <- read.table(gzfile(infile), header=TRUE, na.strings=c("NA", "None",'.'), as.is = TRUE)
+     dat <- as.data.table(dat)
+     dt <- rbind(dt, dat)
+ }
+admix_5pct.1.5_mu <- dt
+###########################
+###########################
+# Increased mutation rate data
+outputdir <- '~/DATALab/SimulatedDemographic/Sstar/test/single_sample/0.05_pct/mu_1.2e-8/'
+ mdl <- 'Tenn_nonAfr'
+ admix <- 'n1_0.05_n2_0.0'
+ maxchrm <- 100
+ dt <- data.table(NULL)
+ for(i in seq(1,as.numeric(maxchrm),by = 1)){
+   print(paste0('Loading chromosome number: ',i))
+ #  for(sampname in samps) {
+     ## read in data #
+     ## and annotate filter
+     ## then write back out
+     infile <- paste0(outputdir, '/RegionFiles/', mdl, "_",i,'_',admix,".windowcalc_out.gz")
+     #infile <- paste0(outputdir, '/SstarSigFiles/', mdl, "_",i,"_",admix,"_msp_110_null_ecdf.sstar_sig_out")
+     dat <- read.table(gzfile(infile), header=TRUE, na.strings=c("NA", "None",'.'), as.is = TRUE)
+     dat <- as.data.table(dat)
+     dt <- rbind(dt, dat)
+ }
+admix_5pct.1.2_mu <- dt
+
+
+
+###########################
+# CZIMMER DATA
+outputdir <- '~/DATALab/SimulatedDemographic/Sstar/CZimmer/'
+ mdl <- 'zimmer2_CWZ'
+ dt <- data.table(NULL)
+ 
+ infile <- paste0(outputdir, '/IndFiles/',mdl,'.windowcalc_out.gz')
+  dat <- read.table(gzfile(infile),header=TRUE, na.strings=c("NA", "None",'.'), as.is = TRUE, fill=TRUE)
+  dat <- as.data.table(dat)
+  dt <- rbind(dt,dat)
+ 
+CWZ.windowcalc <- dt
+###########################
+
+###########################
+# OtherCEU DATA
+outputdir <- '~/DATALab/SimulatedDemographic/Sstar/CZimmer/'
+ mdl <- 'zimmer2_'
+ dt <- data.table(NULL)
+ 
+ paths <-dir(path = paste0(outputdir,'IndFiles/'), pattern = "^zimmer2_NA", full = T)
+  
+ for(ind in paths){
+  print(ind)
+  dat <- read.table(gzfile(ind),header=TRUE, na.strings=c("NA", "None",'.'), as.is = TRUE, fill=TRUE)
+  dat <- as.data.table(dat)
+  dt <- rbind(dt,dat)
+}
+ RealData.windowcalc <- dt
+###########################
+ 
+
+
+```
+
+
+```{r}
+plot.n_region_ind_snps.density <-
+  ggplot() + 
+  theme_grey() + 
+  coord_cartesian(xlim=c(0,400)) + 
+  geom_density(data=admix_5pct.0_migration, aes(x=n_region_ind_snps, fill="0_migration"), alpha=0.75) + 
+  geom_density(data=admix_5pct.AF_B_migration, aes(x=n_region_ind_snps, fill="AF_B_migration"), alpha=0.75) + 
+  geom_density(data=admix_5pct.AF_nAF_migration, aes(x=n_region_ind_snps, fill="AF_nAF_migration"), alpha=0.75) +
+  geom_density(data=admix_5pct.full_migration, aes(x=n_region_ind_snps, fill="full_migration"), alpha=0.75)+
+  geom_density(data=admix_5pct.2.5_mu, aes(x=n_region_ind_snps, fill="2.5_mu"), alpha=0.75)+
+  geom_density(data=admix_5pct.1.5_mu, aes(x=n_region_ind_snps, fill="1.5_mu"), alpha=0.75)+
+  geom_density(data=admix_5pct.1.2_mu, aes(x=n_region_ind_snps, fill="1.2_mu"), alpha=0.75)+
+  geom_density(data=CWZ.windowcalc, aes(x=n_region_ind_snps, fill="CWZ"), alpha=0.75)
+
+plot.num_s_star_snps.densty <- 
+  ggplot() + 
+  theme_grey() + 
+  coord_cartesian(xlim=c(0,20)) + 
+  geom_density(data=admix_5pct.0_migration, aes(x=num_s_star_snps, fill="0_migration"), alpha=0.75) + 
+  geom_density(data=admix_5pct.AF_B_migration, aes(x=num_s_star_snps, fill="AF_B_migration"), alpha=0.75) + 
+  geom_density(data=admix_5pct.AF_nAF_migration, aes(x=num_s_star_snps, fill="AF_nAF_migration"), alpha=0.75) +
+  geom_density(data=admix_5pct.full_migration, aes(x=num_s_star_snps, fill="full_migration"), alpha=0.75) +
+  geom_density(data=CWZ.windowcalc, aes(x=num_s_star_snps, fill="CWZ"), alpha=0.75)
+
+plot.num_s_star_snps.hist <-
+  ggplot( data=rbind(
+              admix_5pct.0_migration[,mig:='none'],
+              admix_5pct.AF_B_migration[,mig:='AF_B'],
+              admix_5pct.AF_nAF_migration[,mig:='AF_nAF'],
+              admix_5pct.full_migration[,mig:='full'],
+              CWZ.windowcalc[,mig:='CWZ']
+                   ) ) +
+    theme_grey() +
+    coord_cartesian(xlim=c(0,20)) + 
+    geom_histogram(aes(x=num_s_star_snps, y=..density..,fill=mig), position =position_dodge(width=1), alpha=0.75)
+
+plot.num_s_star_snps.non0.densty <- 
+  ggplot() + 
+  theme_grey() + 
+  coord_cartesian(xlim=c(0,20)) + 
+  geom_density(data=admix_5pct.0_migration %>% filter(num_s_star_snps>0), aes(x=num_s_star_snps, fill="0_migration"), alpha=0.75) + 
+  geom_density(data=admix_5pct.AF_B_migration %>% filter(num_s_star_snps>0), aes(x=num_s_star_snps, fill="AF_B_migration"), alpha=0.75) + 
+  geom_density(data=admix_5pct.AF_nAF_migration %>% filter(num_s_star_snps>0), aes(x=num_s_star_snps, fill="AF_nAF_migration"), alpha=0.75) +
+  geom_density(data=admix_5pct.full_migration %>% filter(num_s_star_snps>0), aes(x=num_s_star_snps, fill="full_migration"), alpha=0.75) +
+  geom_density(data=CWZ.windowcalc %>% filter(num_s_star_snps>0), aes(x=num_s_star_snps, fill="CWZ"), alpha=0.75)
+
+
+plot.s_star.density <- 
+  ggplot() + 
+  theme_grey() + 
+  coord_cartesian(xlim=c(0,1.5e5)) + 
+  geom_density(data=admix_5pct.0_migration, aes(x=s_star, fill="0_migration"), alpha=0.75) + 
+  geom_density(data=admix_5pct.AF_B_migration, aes(x=s_star, fill="AF_B_migration"), alpha=0.75) + 
+  geom_density(data=admix_5pct.AF_nAF_migration, aes(x=s_star, fill="AF_nAF_migration"), alpha=0.75) +
+  geom_density(data=admix_5pct.full_migration, aes(x=s_star, fill="full_migration"), alpha=0.75) +
+  geom_density(data=admix_5pct.1.2_mu, aes(x=s_star, fill="1.2_mu"), alpha=0.75)+
+  geom_density(data=filter(CWZ.windowcalc, s_star>=0), aes(x=s_star, fill="CWZ"), alpha=0.75)
+
+plot.s_star.hist <-
+  ggplot( data=filter(rbind(
+              admix_5pct.0_migration[,mig:='none'],
+              admix_5pct.AF_B_migration[,mig:='AF_B'],
+              admix_5pct.AF_nAF_migration[,mig:='AF_nAF'],
+              admix_5pct.full_migration[,mig:='full'],
+              admix_5pct.1.2_mu[,mig:='1.2_mu'],
+              CWZ.windowcalc[,mig:='CWZ']
+                   ), s_star>=0 )) +
+    theme_grey() +
+    coord_cartesian(xlim=c(0,1.5e5)) + 
+    geom_histogram(aes(x=s_star, y=..density..,fill=mig), position =position_dodge(width = 7000), alpha=0.75)
+
+plot.s_star.non0.density <- 
+  ggplot() + 
+  theme_grey() + 
+  coord_cartesian(xlim=c(0,1.5e5)) + 
+  geom_density(data=admix_5pct.0_migration %>% filter(s_star>0), aes(x=s_star, fill="0_migration"), alpha=0.75) + 
+  geom_density(data=admix_5pct.AF_B_migration %>% filter(s_star>0), aes(x=s_star, fill="AF_B_migration"), alpha=0.75) + 
+  geom_density(data=admix_5pct.AF_nAF_migration %>% filter(s_star>0), aes(x=s_star, fill="AF_nAF_migration"), alpha=0.75) +
+  geom_density(data=admix_5pct.full_migration %>% filter(s_star>0), aes(x=s_star, fill="full_migration"), alpha=0.75) +
+  geom_density(data=CWZ.windowcalc %>% filter(s_star>0), aes(x=s_star, fill="CWZ"), alpha=0.75)
+
+
+
+
+plot_grid(plot.s_star.density, plot.s_star.hist, plot.s_star.non0.density, 
+          plot.num_s_star_snps.densty, plot.num_s_star_snps.hist, plot.num_s_star_snps.non0.densty, 
+          plot.n_region_ind_snps.density, ncol = 3)
+
+
+
+```
+
+
+```{r}
+
+plot.s_star.RD.density <-
+  ggplot() +
+  theme_grey() +
+  geom_density(data=RealData.windowcalc %>% filter(s_star>0), aes(x=s_star, fill=ind_id), alpha=0.75)
+
+plot.s_star.RD.hist <-
+  ggplot() +
+  theme_grey() +
+  coord_cartesian(xlim=c(0,1.5e5)) + 
+  geom_histogram(data=RealData.windowcalc %>% filter(s_star>=0), aes(x=s_star, y=..density.., fill=ind_id), alpha=0.75, position=position_dodge(width = 8000))
+
+plot.n_region_ind_snps.RD.density <-
+  ggplot() +
+  theme_grey() +
+  coord_cartesian(xlim=c(0,400)) +
+  geom_density(data=RealData.windowcalc %>% filter(s_star>0), aes(x=n_region_ind_snps, fill=ind_id), alpha=0.75)
+
+
+plot_grid(plot.s_star.density, plot.s_star.hist, plot.s_star.non0.density, 
+          plot.num_s_star_snps.densty, plot.num_s_star_snps.hist, plot.num_s_star_snps.non0.densty, 
+          plot.n_region_ind_snps.density, plot.n_region_ind_snps.RD.density, plot.s_star.RD.hist, ncol = 3)
+
+```
+
+```{r}
+RealData.windowcalc.deserts <- rbind(
+                                    filter(RealData.windowcalc, chrom==1 & winstart>104e6 & winend < 114.9e6),
+                                    filter(RealData.windowcalc, chrom==3 & winstart>76.5e6 & winend < 90.5e6),
+                                    filter(RealData.windowcalc, chrom==7 & winstart>113.6e6 & winend < 124.7e6),
+                                    filter(RealData.windowcalc, chrom==8 & winstart>54.5e6 & winend < 65.4e6)
+                                    )
+
+
+plot.n_region_in_snps.chr1 <- 
+  ggplot() +
+  theme_grey() +
+  geom_density(data=RealData.windowcalc.deserts[chrom==1], aes(x=n_region_ind_snps, fill="desert"), alpha=0.75) +
+  geom_density(data=anti_join(RealData.windowcalc[chrom==1],RealData.windowcalc.deserts[chrom==1]), aes(x=n_region_ind_snps, fill="nondesert"), alpha=0.75)
+
+plot.n_region_in_snps.chr3 <- 
+  ggplot() +
+  theme_grey() +
+  geom_density(data=RealData.windowcalc.deserts[chrom==3], aes(x=n_region_ind_snps, fill="desert"), alpha=0.75) +
+  geom_density(data=anti_join(RealData.windowcalc[chrom==3],RealData.windowcalc.deserts[chrom==3]), aes(x=n_region_ind_snps, fill="nondesert"), alpha=0.75)
+
+plot.n_region_in_snps.chr7 <- 
+  ggplot() +
+  theme_grey() +
+  geom_density(data=RealData.windowcalc.deserts[chrom==7], aes(x=n_region_ind_snps, fill="desert"), alpha=0.75) +
+  geom_density(data=anti_join(RealData.windowcalc[chrom==7],RealData.windowcalc.deserts[chrom==7]), aes(x=n_region_ind_snps, fill="nondesert"), alpha=0.75)
+
+
+plot.n_region_in_snps.chr8 <- 
+  ggplot() +
+  theme_grey() +
+  geom_density(data=RealData.windowcalc.deserts[chrom==8], aes(x=n_region_ind_snps, fill="desert"), alpha=0.75) +
+  geom_density(data=anti_join(RealData.windowcalc[chrom==8],RealData.windowcalc.deserts[chrom==8]), aes(x=n_region_ind_snps, fill="nondesert"), alpha=0.75)
+
+
+plot_grid(plot.n_region_in_snps.chr1, plot.n_region_in_snps.chr3, plot.n_region_in_snps.chr7, plot.n_region_in_snps.chr8)
+
+```
+
