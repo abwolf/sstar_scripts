@@ -131,6 +131,7 @@ commandline.arguments.fn <- function(){
 print(' Import command line arguments')
 option_list = list(
     make_option(c("--inputdir"), action="store", default=NA, type='character', help="Directory containing input files"),
+    make_option(c("--outputdir"), action="store", default=NA, type='character', help="Set output directory for bedfiles"),
     make_option(c("--mdl"), action="store", default=NA, type='character', help="Model type, e.g. Tenn_nonAfr"),
     make_option(c("--null_dir"), action="store", default='null', type='character', help="Null directory name"),
     make_option(c("--null_tag"), action="store", default='n1_0.0_n2_0.0', type='character', help="Null model tag, e.g. n1_0.0_n2_0.0"),
@@ -141,9 +142,9 @@ option_list = list(
     make_option(c("--max_chrm_null"), action="store", default=NA, type='numeric', help="Number of chromosomes to test from null data"),
     make_option(c("--sstarpval"), action="store", default=0.01, type='numeric', help="Sstar pvalue cutoff for significance"),
     make_option(c("--matchpval"), action="store", default=0.05, type='numeric', help="Match pvalue cutoff for significance"),
-    make_option(c("--outputdir"), action="store", default=NA, type='character', help="Set output directory for bedfiles"),
     make_option(c("--nofilter"), action="store_true", default=TRUE, help="Print complete output, w/o filtering [default]"),
-    make_option(c("--filter"), action="store_false", dest="nofilter", help="Print the filtered output")
+    make_option(c("--filter"), action="store_false", dest="nofilter", help="Print the filtered output"),
+    make_option(c("--ecdf_only"), action="store_true", dest="ecdf_only", default=FALSE, help="Generate the ecdfs and then exit")
 )
 
 opt <<- parse_args(OptionParser(option_list=option_list))
@@ -165,11 +166,18 @@ admix <- opt$null_tag
 dir <- opt$null_dir
 maxchrm <- opt$max_chrm_null
 
-ecdf_data <- paste0(inputdir,dir,'/SstarECDF_maxchrm_',maxchrm,'.RData.gz')
+if ( opt$ecdf_only==TRUE ){ print("WARNING: Only Generating ecdfs") }
+
+if ( file.exists(opt$ecdf) ){
+    print( ' use specified ecdf file ')
+    ecdf_data <- opt$ecdf
+} else {
+    ecdf_data <- paste0(inputdir,dir,'/SstarECDF_maxchrm_',maxchrm,'.RData.gz')
+}
 
 if (file.exists(ecdf_data)){
     print('LOAD ECDF DATA')
-    print( ecdf_data)
+    print( ecdf_data )
     load(file = ecdf_data, verbose=TRUE)
     print(paste0(' max_snps_ecdf: ', max_snps_ecdf))
 } else {
@@ -188,7 +196,7 @@ if (file.exists(ecdf_data)){
         gc()
     }
     ####################
-    print(' Run generate.ecdf.fn admixture data')
+    print(' Run generate.ecdf.fn null data')
 
     generate.ecdf.region_ind.fn(null.dt = null.dt)
     print(paste0(' max_snps_ecdf: ', max_snps_ecdf))
@@ -198,6 +206,8 @@ if (file.exists(ecdf_data)){
      print(' save.image')
      save.image(file = ecdf_data, compress=TRUE, safe=TRUE)
 }
+
+if ( opt$ecdf_only==TRUE ){ stop("Only Generating ecdfs") }
 
 ## Redefine the commandline options here incase there are some conflicting ones already in the RData file we just loaded
 commandline.arguments.fn()
