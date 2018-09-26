@@ -205,9 +205,8 @@ if (file.exists(ecdf_data)){
 
      print(' save.image')
      save.image(file = ecdf_data, compress=TRUE, safe=TRUE)
+     if ( opt$ecdf_only==TRUE ){ stop("Only Generating ecdfs") }
 }
-
-if ( opt$ecdf_only==TRUE ){ stop("Only Generating ecdfs") }
 
 ## Redefine the commandline options here incase there are some conflicting ones already in the RData file we just loaded
 commandline.arguments.fn()
@@ -227,11 +226,12 @@ admix <- opt$admix_tag
 dir <- opt$admix_dir
 maxchrm <- opt$max_chrm_admix
 
- #for(i in seq(1,as.numeric(maxchrm),by = 1)){
- for( i in as.numeric(maxchrm) ){
+ sim_chrms <- fread(paste0(inputdir,dir,"/Tenn.chr_list"))
+ for( i in seq(1,as.numeric(maxchrm),by=1) ){
     out <- data.table(NULL)
-    print(paste0(' Loading ADMIX chromosome number: ',i))
-    infile <- paste0(inputdir,dir,'/RegionFiles/', mdl, "_",i,'_',admix,".windowcalc_out.gz")
+    c <- sim_chrms[i][[1]]
+    print(paste0(' Loading ADMIX chromosome number: ',c))
+    infile <- paste0(inputdir,dir,'/RegionFiles/', mdl, "_",c,'_',admix,".windowcalc_out.gz")
     dat <- fread(paste0('zcat ',infile), header=TRUE,
                 select=c('chrom','winstart','winend','n_region_ind_snps',
                         'ind_id','pop','s_star','num_s_star_snps',
@@ -278,8 +278,8 @@ maxchrm <- opt$max_chrm_admix
 
     #######################
 
-    print(paste0(' Loading MATCHPVAL chromosome number: ',i))
-    infile <- paste0(inputdir,dir,'/match_pvalues/null-*/','pvalue_table_', mdl, "_",i,'_',admix,"_*.tsv.gz")
+    print(paste0(' Loading MATCHPVAL chromosome number: ',c))
+    infile <- paste0(inputdir,dir,'/match_pvalues/null-*/','pvalue_table_', mdl, "_",c,'_',admix,"_*.tsv.gz")
     admix.match_pvals <- fread(paste0('zcat ',infile), header=TRUE,
                                 select=c('chr','start','end','haplotype','pvalue'),
                                 col.names=c('chrom','winstart','winend','ID','match_pvalue'))
@@ -301,7 +301,7 @@ maxchrm <- opt$max_chrm_admix
     write.filtered.bed.fn(dt = out,
     		outputdir = as.character(opt$outputdir),
     		mdl = opt$mdl,
-            chrom = i,
+            chrom = c,
     		admix = opt$admix_tag,
     		spval = opt$sstarpval,
     		matchpval = opt$matchpval)
@@ -309,7 +309,7 @@ maxchrm <- opt$max_chrm_admix
     write.all.bed.fn(dt = out,
     		outputdir = as.character(opt$outputdir),
     		mdl = opt$mdl,
-            chrom = i,
+            chrom = c,
     		admix = opt$admix_tag)
     }
  }

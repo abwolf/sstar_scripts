@@ -1,20 +1,13 @@
 from __future__ import print_function
 import sys
 import gzip
-import pybedtools
 import random
-from optparse import OptionParser
 
-#parser = OptionParser(usage=usage)
-
-
-conversion_file = open(sys.argv[1], 'r')
+sample_list_file = open(sys.argv[1], 'r')
 
 conversion_dict={}
-for line in conversion_file:
-	#print(line, file=sys.stderr)
+for line in sample_list_file:
 	ln = line.strip().split('\t')
-	#print(ln[1],file=sys.stderr)
 	msp_id = ln[0]
 #########
 ### Include this section for flipping the haplotype assignment
@@ -25,15 +18,16 @@ for line in conversion_file:
 #		msp_id = msp_id_diff_list[0]+'_'+msp_id_diff_list[1]+'_'+'2'
 #	elif msp_id_diff_list[2]=='2':
 #		msp_id = msp_id_diff_list[0]+'_'+msp_id_diff_list[1]+'_'+'1'
-#########	
+#########
 	ind_id = ln[1]
 	conversion_dict[ind_id]=msp_id
 
-conversion_file.close()
+sample_list_file.close()
 #print(conversion_dict, file=sys.stderr)
 
 Tree_bed_file = gzip.open(sys.argv[2], 'rb')
-#Tree_bed_file_mod = open(sys.argv[2]+'.mod' , 'w')
+fname = str(sys.argv[2]).strip('.gz')
+Tree_bed_file_mod = gzip.open(fname+'.mod.gz' , 'wb')
 
 for line in Tree_bed_file:
 	ln = line.strip().split('\t')
@@ -42,11 +36,11 @@ for line in Tree_bed_file:
 	end = ln[2]
 	ind_id = ln[3]
 	msp_id = conversion_dict[ind_id] #msp_1000_1
-	msp_id_list = msp_id.split('_')
-	msp_id_ch = msp_id_list[0]+'_'+msp_id_list[1]+'_'+chrm+'_'+msp_id_list[2]
-	new_ln = msp_id_ch+'\t'+strt+'\t'+end+'\t'+chrm
-	print(new_ln,file=sys.stdout)
-#	Tree_bed_file_mod.write(new_ln)
+	msp_id_list = msp_id.split(':')
+	msp_id_ch = msp_id_list[0]+':'+msp_id_list[1]+'_'+chrm
+	new_ln = msp_id_ch+'\t'+strt+'\t'+end+'\n'
+#	print(new_ln,file=sys.stdout)
+	Tree_bed_file_mod.write(new_ln)
 
 Tree_bed_file.close()
-#Tree_bed_file_mod.close()
+Tree_bed_file_mod.close()
