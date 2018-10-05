@@ -13,7 +13,7 @@ echo ''
 
 sstardir=~/SimulatedDemographic/Sstar/
 dir=/Genomics/akeylab/abwolf/SimulatedDemographic/Sstar/chr1_variable_ref/simulations
-admix=$( echo n1_0.1_mAfB_0.0_mBAf_0.0_mAfEu_0.0_mEuAf_0.0 )
+admix=$( echo n1_0.1_mAfB_0.0_mBAf_0.0_mAfEu_0.0_mEuAf_0.0005 )
 
 cmd=$( echo " Rscript $sstardir/bin/SstarECDFpvalueCalculation.R \n
 	--inputdir $dir/Tenn/ \n

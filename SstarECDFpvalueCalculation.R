@@ -26,7 +26,7 @@ generate.ecdf.region_ind.fn <- function(null.dt){
    if(nrow(filter(null.dt, s_star>0, n_region_ind_snps==i, pop==p))>0){
      print(nam)
      assign(nam, ecdf(filter(null.dt, s_star>0, n_region_ind_snps==i, pop==p)$s_star), inherits = TRUE)
-     if(i>max_snps_ecdf){max_snps_ecdf <<- i}
+     if(i>max_snps_ecdf){ max_snps_ecdf <<- i }
    }}
  }
  }
@@ -40,14 +40,17 @@ estimate.pval.ecdf.region_ind.fn <- function(X, max_snps){
   pop <- X[["pop"]]
   if (n_snps==0){
     X[["sstarpval_region_ind_snps"]] <- NA
-    } else if (n_snps<=max_snps) {
-    if( exists(paste0("null.f.region_ind.",n_snps,".",pop,"..ecdf")) ){
-      ecdf.fn <- match.fun(paste0("null.f.region_ind.",n_snps,".",pop,"..ecdf"))
-      s_star_pval <- 1-ecdf.fn(s_star)
-      X[["sstarpval_region_ind_snps"]] <- round(x = s_star_pval, digits = 4)
-      }
-    } else if (n_snps>max_snps) {
-    ecdf.fn <- match.fun(paste0("null.f.region_ind.",max_snps,".",pop,"..ecdf"))
+    }
+  else if (n_snps<=max_snps) {
+          if( exists(paste0("null.f.region_ind.",n_snps,".",pop,".ecdf")) ){
+            ecdf.fn <- match.fun(paste0("null.f.region_ind.",n_snps,".",pop,".ecdf"))
+            s_star_pval <- 1-ecdf.fn(s_star)
+            X[["sstarpval_region_ind_snps"]] <- round(x = s_star_pval, digits = 4)
+            }
+  #        else if { }
+    }
+  else if (n_snps>max_snps) {
+    ecdf.fn <- match.fun(paste0("null.f.region_ind.",max_snps,".",pop,".ecdf"))
     s_star_pval <- 1-ecdf.fn(s_star)
     X[["sstarpval_region_ind_snps"]] <- round(x = s_star_pval, digits = 4)
     }
