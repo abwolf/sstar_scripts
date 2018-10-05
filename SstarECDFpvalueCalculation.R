@@ -17,15 +17,18 @@ suppressMessages(require(bit64))
 print('FUNCTION: Generate ECDFs')
 generate.ecdf.region_ind.fn <- function(null.dt){
  print(' GENERATE ECDFS')
- for( i in sort(unique(as.numeric(null.dt$n_region_ind_snps)))){
+ max_snps_ecdf <<- 0
+ for( p in sort(unique(null.dt$pop))){
+  for( i in sort(unique(as.numeric(null.dt$n_region_ind_snps)))){
    if(i>0){
    print(i)
-   nam <<- paste0('null.f.region_ind.', i, '.ecdf')
-   if(nrow(filter(null.dt, s_star>0, n_region_ind_snps==i))>0){
+   nam <<- paste0('null.f.region_ind.', i, '.',p,'.ecdf')
+   if(nrow(filter(null.dt, s_star>0, n_region_ind_snps==i, pop==p))>0){
      print(nam)
-     assign(nam, ecdf(filter(null.dt, s_star>0, n_region_ind_snps==i)$s_star), inherits = TRUE)
-     max_snps_ecdf <<- i
+     assign(nam, ecdf(filter(null.dt, s_star>0, n_region_ind_snps==i, pop==p)$s_star), inherits = TRUE)
+     if(i>max_snps_ecdf){max_snps_ecdf <<- i}
    }}
+ }
  }
 }
 #############
@@ -34,16 +37,17 @@ print('FUNCTION: Calculate S*-pvalue from ecdf')
 estimate.pval.ecdf.region_ind.fn <- function(X, max_snps){
   s_star <- as.numeric(X[["s_star"]])
   n_snps <- as.numeric(X[["n_region_ind_snps"]])
+  pop <- X[["pop"]]
   if (n_snps==0){
     X[["sstarpval_region_ind_snps"]] <- NA
     } else if (n_snps<=max_snps) {
-    if( exists(paste0("null.f.region_ind.",n_snps,".ecdf")) ){
-      ecdf.fn <- match.fun(paste0("null.f.region_ind.",n_snps,".ecdf"))
+    if( exists(paste0("null.f.region_ind.",n_snps,".",pop,"..ecdf")) ){
+      ecdf.fn <- match.fun(paste0("null.f.region_ind.",n_snps,".",pop,"..ecdf"))
       s_star_pval <- 1-ecdf.fn(s_star)
       X[["sstarpval_region_ind_snps"]] <- round(x = s_star_pval, digits = 4)
       }
     } else if (n_snps>max_snps) {
-    ecdf.fn <- match.fun(paste0("null.f.region_ind.",max_snps,".ecdf"))
+    ecdf.fn <- match.fun(paste0("null.f.region_ind.",max_snps,".",pop,"..ecdf"))
     s_star_pval <- 1-ecdf.fn(s_star)
     X[["sstarpval_region_ind_snps"]] <- round(x = s_star_pval, digits = 4)
     }
@@ -182,14 +186,14 @@ if (file.exists(ecdf_data)){
     print(paste0(' max_snps_ecdf: ', max_snps_ecdf))
 } else {
     print('LOAD NULL DATA')
-    sim_chrms <- fread(paste0(inputdir,dir,"/Tenn.chr_list"))
+    sim_chrms <- fread(paste0('cat ',inputdir,dir,"/*.chr_list"))
     null.dt <- data.table(NULL)
     for( i in seq(1,as.numeric(maxchrm),by = 1)){
     #for( i in seq(1,nrow(sim_chrms),by = 1)){
         c <- sim_chrms[i][[1]]
         print(paste0(' Loading NULL chromosome number: ',c))
         infile <- paste0(inputdir,dir,'/RegionFiles/', mdl, "_",c,'_',admix,".windowcalc_out.gz")
-        dat <- fread(paste0('zcat ', infile), header=TRUE, select=c('s_star', 'n_region_ind_snps'))
+        dat <- fread(paste0('zcat ', infile), header=TRUE, select=c('s_star', 'n_region_ind_snps', 'pop'))
         dat <- filter(dat, s_star>0)
         null.dt <- rbind(null.dt, dat)
         remove(dat)
@@ -226,7 +230,7 @@ admix <- opt$admix_tag
 dir <- opt$admix_dir
 maxchrm <- opt$max_chrm_admix
 
- sim_chrms <- fread(paste0(inputdir,dir,"/Tenn.chr_list"))
+ sim_chrms <- fread(paste0('cat ',inputdir,dir,"/*.chr_list"))
  for( i in seq(1,as.numeric(maxchrm),by=1) ){
     out <- data.table(NULL)
     c <- sim_chrms[i][[1]]

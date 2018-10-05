@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH --get-user-env
-#SBATCH --mem=5G
+#SBATCH --mem=50G
 #SBATCH --qos=1day
-#SBATCH --time=22:00:00
+#SBATCH --time=23:00:00
 #SBATCH --output=./slrun.SstarECDFpvalueCalculation.%A_%a.o
 source ~/.bashrc
 
@@ -13,7 +13,7 @@ echo ''
 
 sstardir=~/SimulatedDemographic/Sstar/
 dir=/Genomics/akeylab/abwolf/SimulatedDemographic/Sstar/chr1_variable_ref/simulations
-admix=$( echo n1_0.1_mAfB_0.0_mBAf_0.0_mAfEu_0.0_mEuAf_0.000025)
+admix=$( echo n1_0.1_mAfB_0.0_mBAf_0.0_mAfEu_0.0_mEuAf_0.0 )
 
 cmd=$( echo " Rscript $sstardir/bin/SstarECDFpvalueCalculation.R \n
 	--inputdir $dir/Tenn/ \n
@@ -22,15 +22,15 @@ cmd=$( echo " Rscript $sstardir/bin/SstarECDFpvalueCalculation.R \n
 	--admix_dir /$admix/ \n
 	--admix_tag $admix \n
 	--max_chrm_admix 1000 \n
-	--ecdf $dir/Tenn/null/SstarECDF_maxchrm_9996.RData.gz \n
+	--ecdf $dir/Tenn/null/SstarECDF_maxchrm_9000.RData.gz \n
 	--filter " )
 
 # cmd=$( echo " Rscript $sstardir/bin/SstarECDFpvalueCalculation.R \n
-# 	--inputdir $dir/Tenn/ \n
+# 	--inputdir $dir/Sriram/ \n
 # 	--null_dir /null/ \n
-# 	--mdl Tenn_nonAfr \n
+# 	--mdl Sriram_nonAfr \n
 # 	--null_tag n1_0.0_mAfB_0.0_mBAf_0.0_mAfEu_0.0_mEuAf_0.0 \n
-# 	--max_chrm_null 9996 \n
+# 	--max_chrm_null 9997 \n
 # 	--ecdf_only " )
 
 echo -e $cmd
