@@ -18,9 +18,9 @@ n1=$( echo 0.1)
 n2=$( echo 0.0)
 
 m_AF_B=$( echo 0.0 )
-m_B_AF=$( echo 0.00005 )
+m_B_AF=$( echo 0.0 )
 m_AF_EU=$( echo 0.0 )
-m_EU_AF=$( echo 0.0 )
+m_EU_AF=$( echo 0.0005 )
 
 eur=$( echo 1006 )   #1006
 asn=$( echo 1008 )   #1008 ; 2040
