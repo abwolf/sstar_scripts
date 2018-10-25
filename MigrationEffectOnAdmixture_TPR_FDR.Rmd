@@ -18,17 +18,15 @@ library(stringr)
 
 ```{r}
 
-mdls <- list.files('~/DATALab/SimulatedDemographic/Sstar/chr1_variable_ref/simulations/Tenn/')
-
-mdls <- mdls[c(8:24)]
+mdls <- list.files('~/DATALab/SimulatedDemographic/Sstar/chr1_variable_ref/simulations/Tenn/', pattern="n1_0.05")
 
 TPR_FDR <- data.table(NULL)
 
 for (mdl in mdls){
     print(mdl)
-    
+
     infile <- paste0('~/DATALab/SimulatedDemographic/Sstar/chr1_variable_ref/simulations/Tenn/',mdl)
-    
+
     chr_list <- fread(paste0(infile,'/Tenn.chr_list'), col.names = c('chr'), colClasses = c('numeric'))
 
     dt.TPR <- fread(paste0('cat ',infile,'/TPR_FDR.txt | grep TPR'), select=c(1,4), col.names=c('chr','TPR'))
@@ -37,16 +35,16 @@ for (mdl in mdls){
 
     dt.TPR %<>% rowwise() %>% mutate(chr=as.numeric(strsplit(chr,split = ':')[[1]][[2]])) %>% as.data.table()
     dt.TPR %<>% rowwise() %>% mutate(TPR=as.numeric(strsplit(TPR,split = ':')[[1]][[2]])) %>% as.data.table()
-    
+
     dt.FDR %<>% rowwise() %>% mutate(chr=as.numeric(strsplit(chr,split = ':')[[1]][[2]])) %>% as.data.table()
     dt.FDR %<>% rowwise() %>% mutate(FDR=as.numeric(strsplit(FDR,split = ':')[[1]][[2]])) %>% as.data.table()
-    
+
     dt <- left_join(chr_list,dt.TPR, by='chr') %>% left_join(dt.FDR, by='chr') %>% as.data.table()
-    
+
     mean.TPR <- round(t.test(dt$TPR,conf.level = 0.95)$estimate[[1]],digits = 4)
     TPR.CI.lwr <- round(t.test(dt$TPR,conf.level = 0.95)$conf.int[[1]],4)
     TPR.CI.upr <- round(t.test(dt$TPR,conf.level = 0.95)$conf.int[[2]],4)
-    
+
     mean.FDR <- round(t.test(dt$FDR,conf.level = 0.95)$estimate[[1]],4)
     FDR.CI.lwr <- round(t.test(dt$FDR,conf.level = 0.95)$conf.int[[1]],4)
     FDR.CI.upr <- round(t.test(dt$FDR,conf.level = 0.95)$conf.int[[2]],4)
@@ -58,22 +56,22 @@ for (mdl in mdls){
 
     dt.TPR.30kb %<>% rowwise() %>% mutate(chr=as.numeric(strsplit(chr,split = ':')[[1]][[2]])) %>% as.data.table()
     dt.TPR.30kb %<>% rowwise() %>% mutate(TPR=as.numeric(strsplit(TPR,split = ':')[[1]][[2]])) %>% as.data.table()
-    
+
     dt.FDR.30kb %<>% rowwise() %>% mutate(chr=as.numeric(strsplit(chr,split = ':')[[1]][[2]])) %>% as.data.table()
     dt.FDR.30kb %<>% rowwise() %>% mutate(FDR=as.numeric(strsplit(FDR,split = ':')[[1]][[2]])) %>% as.data.table()
-    
+
     dt <- left_join(chr_list,dt.TPR.30kb, by='chr') %>% left_join(dt.FDR.30kb, by='chr') %>% as.data.table()
-    
+
     mean.TPR.30kb <- round(t.test(dt$TPR,conf.level = 0.95)$estimate[[1]],digits = 4)
     TPR.CI.lwr.30kb <- round(t.test(dt$TPR,conf.level = 0.95)$conf.int[[1]],4)
     TPR.CI.upr.30kb <- round(t.test(dt$TPR,conf.level = 0.95)$conf.int[[2]],4)
-    
+
     mean.FDR.30kb <- round(t.test(dt$FDR,conf.level = 0.95)$estimate[[1]],4)
     FDR.CI.lwr.30kb <- round(t.test(dt$FDR,conf.level = 0.95)$conf.int[[1]],4)
     FDR.CI.upr.30kb <- round(t.test(dt$FDR,conf.level = 0.95)$conf.int[[2]],4)
 ###########
 ###########
-    
+
     row <- data.table(mdl, mean.TPR, mean.TPR.30kb, TPR.CI.lwr, TPR.CI.upr, TPR.CI.lwr.30kb, TPR.CI.upr.30kb, mean.FDR, mean.FDR.30kb, FDR.CI.lwr, FDR.CI.upr, FDR.CI.lwr.30kb, FDR.CI.upr.30kb)
     TPR_FDR <- rbind(TPR_FDR, row)
 }
@@ -90,4 +88,9 @@ ggplot(data=TPR_FDR) + theme_bw() +
 ```
 
 
+```{r}
+
+write.table(x = TPR_FDR, file = "~/DATALab/SimulatedDemographic/Sstar/chr1_variable_ref/simulations/Tenn/TPR_FDR.txt",quote = FALSE, sep = "\t",row.names = FALSE, col.names = TRUE)
+
+```
 
