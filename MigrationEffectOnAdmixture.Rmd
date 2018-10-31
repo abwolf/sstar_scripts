@@ -16,9 +16,7 @@ library(gridExtra)
 
 ```{r Coalescent Calls}
 
-mdls <- list.files('~/DATALab/SimulatedDemographic/Sstar/chr1_variable_ref/simulations/Tenn/')
-
-mdls <- mdls[c(8:24)]
+mdls <- list.files('~/DATALab/SimulatedDemographic/Sstar/chr1_variable_ref/simulations/Tenn/', pattern = 'n1_0.05')
 
 
 dt.Coalescent <- data.table(NULL)
@@ -34,7 +32,7 @@ for (mdl in mdls){
     bedfile.EAS <- fread(input = paste0("gzcat ",infile,"/TreeCalls/*_ASN.gz"),
                    col.names = c('msp_ID_chr','start','end'))
     bedfile.EAS[,len_bp:=end-start]
-    bedfile.EAS <- bedfile.EAS %>% filter(len_bp>50000)
+#    bedfile.EAS <- bedfile.EAS %>% filter(len_bp>50000)
     
     bedfile.EAS %<>% rowwise() %>% mutate(chr=strsplit(msp_ID_chr,split = '_')[[1]][[3]]) %>% as.data.table()
     bedfile.EAS.chr <- bedfile.EAS %>% group_by(chr) %>% summarise(admix = sum(as.numeric(len_bp))/1008/1000000) %>% as.data.table()
@@ -50,7 +48,7 @@ for (mdl in mdls){
     bedfile.EUR <- fread(paste0('gzcat ',infile,'/TreeCalls/*_EUR.gz'),
                    col.names = c('msp_ID_chr','start','end'))
     bedfile.EUR[,len_bp:=end-start]
-    bedfile.EUR <- bedfile.EUR %>% filter(len_bp>50000)
+#    bedfile.EUR <- bedfile.EUR %>% filter(len_bp>50000)
     
     
     bedfile.EUR %<>% rowwise() %>% mutate(chr=strsplit(msp_ID_chr,split = '_')[[1]][[3]]) %>% as.data.table()
@@ -80,15 +78,14 @@ for (mdl in mdls){
 }
 dt.Coalescent %>% setnames(c('mdl','admix.ALL','ci.ALL','sd.ALL','admix.EAS','ci.EAS','sd.EAS','admix.EUR','ci.EUR','sd.EUR','EAS:EUR','t.test.pval'))
 
+dt.Coalescent[,c('ci.EUR.lwr', 'ci.EUR.upr') := tstrsplit(ci.EUR, ' : ',fixed=TRUE)]
+dt.Coalescent[,c('ci.EAS.lwr', 'ci.EAS.upr') := tstrsplit(ci.EAS, ' : ',fixed=TRUE)]
+dt.Coalescent[,c('ci.ALL.lwr', 'ci.ALL.upr') := tstrsplit(ci.ALL, ' : ',fixed=TRUE)]
 
 ```
 
 
 ```{r Coalescent data graph}
-dt.Coalescent[,c('ci.EUR.lwr', 'ci.EUR.upr') := tstrsplit(ci.EUR, ' : ',fixed=TRUE)]
-dt.Coalescent[,c('ci.EAS.lwr', 'ci.EAS.upr') := tstrsplit(ci.EAS, ' : ',fixed=TRUE)]
-dt.Coalescent[,c('ci.ALL.lwr', 'ci.ALL.upr') := tstrsplit(ci.ALL, ' : ',fixed=TRUE)]
-
 
 ggplot() + theme_bw() +
     geom_point(data = dt.Coalescent, aes(x=as.numeric(admix.ALL), y=factor(mdl, levels = rev(mdls))), color='blue', size=3 ) +
@@ -117,9 +114,7 @@ ggplot() + theme_bw() +
 
 ```{r S* calls}
 
-mdls <- list.files('~/DATALab/SimulatedDemographic/Sstar/chr1_variable_ref/simulations/Tenn/')
-
-mdls <- mdls[c(-1,-2,-3,-4,-5,-6,-24,-25)]
+mdls <- list.files('~/DATALab/SimulatedDemographic/Sstar/chr1_variable_ref/simulations/Tenn/', pattern = 'n1_0.05')
 
 
 dt.Sstar <- data.table(NULL)
@@ -178,14 +173,14 @@ for (mdl in mdls){
 }
 dt.Sstar %>% setnames(c('mdl','admix.ALL','ci.ALL','sd.ALL','admix.EAS','ci.EAS','sd.EAS','admix.EUR','ci.EUR','sd.EUR','EAS:EUR','t.test.pval'))
 
+dt.Sstar[,c('ci.EUR.lwr', 'ci.EUR.upr') := tstrsplit(ci.EUR, ' : ',fixed=TRUE)]
+dt.Sstar[,c('ci.EAS.lwr', 'ci.EAS.upr') := tstrsplit(ci.EAS, ' : ',fixed=TRUE)]
+dt.Sstar[,c('ci.ALL.lwr', 'ci.ALL.upr') := tstrsplit(ci.ALL, ' : ',fixed=TRUE)]
+
 ```
 
 
 ```{r S* calls graph}
-
-dt.Sstar[,c('ci.EUR.lwr', 'ci.EUR.upr') := tstrsplit(ci.EUR, ' : ',fixed=TRUE)]
-dt.Sstar[,c('ci.EAS.lwr', 'ci.EAS.upr') := tstrsplit(ci.EAS, ' : ',fixed=TRUE)]
-dt.Sstar[,c('ci.ALL.lwr', 'ci.ALL.upr') := tstrsplit(ci.ALL, ' : ',fixed=TRUE)]
 
 
 ggplot() + theme_bw() +
@@ -285,17 +280,17 @@ plot.modern_migration <-
     #                                          ymin=as.numeric(ci.ALL.lwr), ymax=as.numeric(ci.ALL.upr), 
     #                                          x=mdl, color='ALL'), size=1 ) +
 
-    geom_point(data = dt.Sstar.modern, aes(y=as.numeric(admix.EAS), x=mdl, color='EAS'), size=3 ) +
+    geom_point(data = dt.Sstar.modern, aes(y=as.numeric(admix.EAS), x=mdl, color='EAS'), size=5 ) +
     geom_errorbar(data = dt.Sstar.modern, aes(y=as.numeric(admix.EAS),
                                              ymin=as.numeric(ci.EAS.lwr), ymax=as.numeric(ci.EAS.upr),
-                                             x=mdl, color='EAS'), size=1 ) +
-    geom_line(data = dt.Sstar.modern, aes(y=as.numeric(admix.EAS), x=mdl, color='EAS', group=1), size=1 ) +
+                                             x=mdl, color='EAS'), size=3 ) +
+    geom_line(data = dt.Sstar.modern, aes(y=as.numeric(admix.EAS), x=mdl, color='EAS', group=1), size=3 ) +
   
-    geom_point(data = dt.Sstar.modern, aes(y=as.numeric(admix.EUR), x=mdl, color='EUR'), size=3 ) +
+    geom_point(data = dt.Sstar.modern, aes(y=as.numeric(admix.EUR), x=mdl, color='EUR'), size=5 ) +
     geom_errorbar(data = dt.Sstar.modern, aes(y=as.numeric(admix.EUR), 
                                              ymin=as.numeric(ci.EUR.lwr), ymax=as.numeric(ci.EUR.upr), 
-                                             x=mdl, color='EUR'), size=1 ) +
-    geom_line(data = dt.Sstar.modern, aes(y=as.numeric(admix.EUR), x=mdl, color='EUR'), size=1, group=1 ) +
+                                             x=mdl, color='EUR'), size=3 ) +
+    geom_line(data = dt.Sstar.modern, aes(y=as.numeric(admix.EUR), x=mdl, color='EUR', group=1), size=3 ) +
 
    ###############################  
     # geom_point(data = dt.Coalescent.modern, aes(y=as.numeric(admix.ALL), x=mdl, color='ALL'), size=3 ) +
@@ -303,17 +298,17 @@ plot.modern_migration <-
     #                                                ymin=as.numeric(ci.ALL.lwr), ymax=as.numeric(ci.ALL.upr), 
     #                                                x=mdl, color='ALL'), size=1 ) +
   
-    geom_point(data = dt.Coalescent.modern, aes(y=as.numeric(admix.EAS), x=mdl, color='EAS'), size=3 ) +
+    geom_point(data = dt.Coalescent.modern, aes(y=as.numeric(admix.EAS), x=mdl, color='EAS'), size=5 ) +
     geom_errorbar(data = dt.Coalescent.modern, aes(y=as.numeric(admix.EAS), 
                                              ymin=as.numeric(ci.EAS.lwr), ymax=as.numeric(ci.EAS.upr), 
-                                             x=mdl, color='EAS'), size=1 ) +
+                                             x=mdl, color='EAS'), size=3 ) +
   
-    geom_point(data = dt.Coalescent.modern, aes(y=as.numeric(admix.EUR), x=mdl, color='EUR'), size=3 ) +
+    geom_point(data = dt.Coalescent.modern, aes(y=as.numeric(admix.EUR), x=mdl, color='EUR'), size=5 ) +
     geom_errorbar(data = dt.Coalescent.modern, aes(y=as.numeric(admix.EUR), 
                                              ymin=as.numeric(ci.EUR.lwr), ymax=as.numeric(ci.EUR.upr), 
-                                             x=mdl, color='EUR'), size=1 ) +
+                                             x=mdl, color='EUR'), size=3 ) +
   
-    geom_hline(yintercept = 0.10, linetype='dashed',color='darkgrey') +
+    geom_hline(yintercept = 0.050, linetype='dashed',color='black') +
   
   ################################
     ylab(label = 'admixture fraction estimate') +
@@ -324,8 +319,8 @@ plot.modern_migration <-
     scale_color_hue(l=50, c=100) +
     scale_x_discrete(breaks=dt.Sstar.modern$mdl, labels=c(0.0, 0.00000001, 0.0000001, 0.000001, 0.00001, 0.000025, 0.00005, 0.0001, 0.0005)) + 
     scale_y_continuous(breaks = seq(0,0.12,by = 0.01), labels=seq(0,0.12,by=0.01)) + 
-    scale_y_continuous(trans = "log10", limits = c(NA,-2)) +
-#    coord_cartesian(ylim = c(0,0.12), expand = c(0)) +
+#    scale_y_continuous(trans = "log10", limits = c(NA,-2)) +
+    coord_cartesian(ylim = c(0,0.12), expand = c(0)) +
     theme()
 ##################################
 ##################################
@@ -342,17 +337,17 @@ plot.ancient_migration <-
     #                                          ymin=as.numeric(ci.ALL.lwr), ymax=as.numeric(ci.ALL.upr), 
     #                                          x=mdl, color='ALL'), size=1 ) +
 
-    geom_point(data = dt.Sstar.ancient, aes(y=as.numeric(admix.EAS), x=mdl, color='EAS'), size=3 ) +
+    geom_point(data = dt.Sstar.ancient, aes(y=as.numeric(admix.EAS), x=mdl, color='EAS'), size=5 ) +
     geom_errorbar(data = dt.Sstar.ancient, aes(y=as.numeric(admix.EAS),
                                              ymin=as.numeric(ci.EAS.lwr), ymax=as.numeric(ci.EAS.upr),
-                                             x=mdl, color='EAS'), size=1 ) +
-    geom_line(data = dt.Sstar.ancient, aes(y=as.numeric(admix.EAS), x=mdl, color='EAS', group=1), size=1 ) +
+                                             x=mdl, color='EAS'), size=3 ) +
+    geom_line(data = dt.Sstar.ancient, aes(y=as.numeric(admix.EAS), x=mdl, color='EAS', group=1), size=3 ) +
   
-    geom_point(data = dt.Sstar.ancient, aes(y=as.numeric(admix.EUR), x=mdl, color='EUR'), size=3 ) +
+    geom_point(data = dt.Sstar.ancient, aes(y=as.numeric(admix.EUR), x=mdl, color='EUR'), size=5 ) +
     geom_errorbar(data = dt.Sstar.ancient, aes(y=as.numeric(admix.EUR), 
                                              ymin=as.numeric(ci.EUR.lwr), ymax=as.numeric(ci.EUR.upr), 
-                                             x=mdl, color='EUR'), size=1 ) +
-    geom_line(data = dt.Sstar.ancient, aes(y=as.numeric(admix.EUR), x=mdl, color='EUR'), size=1, group=1 ) +
+                                             x=mdl, color='EUR'), size=3 ) +
+    geom_line(data = dt.Sstar.ancient, aes(y=as.numeric(admix.EUR), x=mdl, color='EUR', group=1), size=3 ) +
 
    ###############################  
     # geom_point(data = dt.Coalescent.ancient, aes(y=as.numeric(admix.ALL), x=mdl, color='ALL'), size=3 ) +
@@ -360,17 +355,17 @@ plot.ancient_migration <-
     #                                                ymin=as.numeric(ci.ALL.lwr), ymax=as.numeric(ci.ALL.upr), 
     #                                                x=mdl, color='ALL'), size=1 ) +
   
-    geom_point(data = dt.Coalescent.ancient, aes(y=as.numeric(admix.EAS), x=mdl, color='EAS'), size=3 ) +
+    geom_point(data = dt.Coalescent.ancient, aes(y=as.numeric(admix.EAS), x=mdl, color='EAS'), size=5 ) +
     geom_errorbar(data = dt.Coalescent.ancient, aes(y=as.numeric(admix.EAS), 
                                              ymin=as.numeric(ci.EAS.lwr), ymax=as.numeric(ci.EAS.upr), 
-                                             x=mdl, color='EAS'), size=1 ) +
+                                             x=mdl, color='EAS'), size=3 ) +
   
-    geom_point(data = dt.Coalescent.ancient, aes(y=as.numeric(admix.EUR), x=mdl, color='EUR'), size=3 ) +
+    geom_point(data = dt.Coalescent.ancient, aes(y=as.numeric(admix.EUR), x=mdl, color='EUR'), size=5 ) +
     geom_errorbar(data = dt.Coalescent.ancient, aes(y=as.numeric(admix.EUR), 
                                              ymin=as.numeric(ci.EUR.lwr), ymax=as.numeric(ci.EUR.upr), 
-                                             x=mdl, color='EUR'), size=1 ) +
+                                             x=mdl, color='EUR'), size=3 ) +
   
-    geom_hline(yintercept = 0.10, linetype='dashed',color='darkgrey') +
+    geom_hline(yintercept = 0.050, linetype='dashed',color='black') +
   
   ################################
     ylab(label = 'admixture fraction estimate') +
@@ -378,10 +373,10 @@ plot.ancient_migration <-
     ggtitle(label = 'Admixture Estimate: Sstar and Coalescent Tree Calls; Ancient Migration') +
     #scale_color_manual(breaks=c('ALL','EAS','EUR')) +
     scale_color_hue(l=50, c=100) +
-    scale_x_discrete(breaks=dt.Sstar.ancient$mdl, labels=c(0.0, 0.00000001, 0.0000001, 0.000001, 0.00001, 0.000025, 0.00005, 0.0001, 0.0005)) + 
+    scale_x_discrete(breaks=dt.Sstar.ancient$mdl, labels=c(0.0, 0.00000001, 0.0000001, 0.000001, 0.00001, 0.00005, 0.0001, 0.00015, 0.0005)) + 
     scale_y_continuous(breaks = seq(0,0.12,by = 0.01), labels=seq(0,0.12,by=0.01)) +
-    scale_y_continuous(trans = "log10", limits = c(NA,-2), breaks = seq(0,0.12,by = 0.01), labels=seq(0,0.12,by=0.01)) +
-#    coord_cartesian(ylim = c(0,0.12), expand = c(0)) +
+#    scale_y_continuous(trans = "log10", limits = c(NA,-2), breaks = seq(0,0.12,by = 0.01), labels=seq(0,0.12,by=0.01)) +
+    coord_cartesian(ylim = c(0,0.12), expand = c(0)) +
     theme()
 ##################################
 ##################################

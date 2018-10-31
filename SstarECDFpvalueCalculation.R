@@ -17,37 +17,43 @@ suppressMessages(require(bit64))
 print('FUNCTION: Generate ECDFs')
 generate.ecdf.region_ind.fn <- function(null.dt){
  print(' GENERATE ECDFS')
- max_snps_ecdf <<- 0
+ #max_snps_ecdf <<- 0
  for( p in sort(unique(null.dt$pop))){
+  assign(paste0('max_snps_ecdf','.',p), 0, inherits = TRUE)
   for( i in sort(unique(as.numeric(null.dt$n_region_ind_snps)))){
    if(i>0){
    print(i)
    nam <<- paste0('null.f.region_ind.', i, '.',p,'.ecdf')
-   if(nrow(filter(null.dt, s_star>0, n_region_ind_snps==i, pop==p))>0){
+    if(nrow(filter(null.dt, s_star>0, n_region_ind_snps==i, pop==p))>0){
      print(nam)
      assign(nam, ecdf(filter(null.dt, s_star>0, n_region_ind_snps==i, pop==p)$s_star), inherits = TRUE)
-     if(i>max_snps_ecdf){max_snps_ecdf <<- i}
-   }}
- }
+     assign(paste0('max_snps_ecdf','.',p), i, inherits = TRUE)
+    }
+   }
+  }
  }
 }
 #############
 #############
 print('FUNCTION: Calculate S*-pvalue from ecdf')
-estimate.pval.ecdf.region_ind.fn <- function(X, max_snps){
+estimate.pval.ecdf.region_ind.fn <- function(X){
   s_star <- as.numeric(X[["s_star"]])
   n_snps <- as.numeric(X[["n_region_ind_snps"]])
   pop <- X[["pop"]]
+  max_snps <- eval(as.name(paste0('max_snps_ecdf.',pop)))
   if (n_snps==0){
     X[["sstarpval_region_ind_snps"]] <- NA
-    } else if (n_snps<=max_snps) {
-    if( exists(paste0("null.f.region_ind.",n_snps,".",pop,"..ecdf")) ){
-      ecdf.fn <- match.fun(paste0("null.f.region_ind.",n_snps,".",pop,"..ecdf"))
-      s_star_pval <- 1-ecdf.fn(s_star)
-      X[["sstarpval_region_ind_snps"]] <- round(x = s_star_pval, digits = 4)
-      }
-    } else if (n_snps>max_snps) {
-    ecdf.fn <- match.fun(paste0("null.f.region_ind.",max_snps,".",pop,"..ecdf"))
+    }
+  else if (n_snps<=max_snps) {
+          if( exists(paste0("null.f.region_ind.",n_snps,".",pop,".ecdf")) ){
+            ecdf.fn <- match.fun(paste0("null.f.region_ind.",n_snps,".",pop,".ecdf"))
+            s_star_pval <- 1-ecdf.fn(s_star)
+            X[["sstarpval_region_ind_snps"]] <- round(x = s_star_pval, digits = 4)
+            }
+  #        else if { }
+    }
+  else if (n_snps>max_snps) {
+    ecdf.fn <- match.fun(paste0("null.f.region_ind.",max_snps,".",pop,".ecdf"))
     s_star_pval <- 1-ecdf.fn(s_star)
     X[["sstarpval_region_ind_snps"]] <- round(x = s_star_pval, digits = 4)
     }
@@ -183,7 +189,7 @@ if (file.exists(ecdf_data)){
     print('LOAD ECDF DATA')
     print( ecdf_data )
     load(file = ecdf_data, verbose=TRUE)
-    print(paste0(' max_snps_ecdf: ', max_snps_ecdf))
+    #print(paste0(' max_snps_ecdf: ', max_snps_ecdf))
 } else {
     print('LOAD NULL DATA')
     sim_chrms <- fread(paste0('cat ',inputdir,dir,"/*.chr_list"))
@@ -203,7 +209,7 @@ if (file.exists(ecdf_data)){
     print(' Run generate.ecdf.fn null data')
 
     generate.ecdf.region_ind.fn(null.dt = null.dt)
-    print(paste0(' max_snps_ecdf: ', max_snps_ecdf))
+    print(' ecdf generated')
     print(' remove null data')
     remove(null.dt)
 
@@ -236,15 +242,18 @@ maxchrm <- opt$max_chrm_admix
     c <- sim_chrms[i][[1]]
     print(paste0(' Loading ADMIX chromosome number: ',c))
     infile <- paste0(inputdir,dir,'/RegionFiles/', mdl, "_",c,'_',admix,".windowcalc_out.gz")
+    if( length(readLines(infile)) == 0 ) { next }
+
     dat <- fread(paste0('zcat ',infile), header=TRUE,
                 select=c('chrom','winstart','winend','n_region_ind_snps',
                         'ind_id','pop','s_star','num_s_star_snps',
                         'hap_1_s_start','hap_1_s_end','hap_2_s_start','hap_2_s_end',
                         'n_s_star_snps_hap1','n_s_star_snps_hap2','s_star_haps'),
                 na.strings=c("NA", "None",'.'))
-
+                
     print(' Run estimate.pval.ecdf.fn')
-    out <- as.data.table(t(apply(X = dat,MARGIN = 1,FUN = estimate.pval.ecdf.region_ind.fn, max_snps=max_snps_ecdf)))
+    #out <- as.data.table(t(apply(X = dat,MARGIN = 1,FUN = estimate.pval.ecdf.region_ind.fn, max_snps=max_snps_ecdf)))
+    out <- as.data.table(t(apply(X = dat,MARGIN = 1,FUN = estimate.pval.ecdf.region_ind.fn)))
     setnames(out,c("chrom","winstart","winend","ind_id","pop","s_star","n_region_ind_snps","sstarpval_region_ind_snps",
               "num_s_star_snps","hap_1_s_start","hap_1_s_end","hap_2_s_start","hap_2_s_end",
               "n_s_star_snps_hap1","n_s_star_snps_hap2","s_star_haps"))

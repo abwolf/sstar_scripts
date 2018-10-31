@@ -16,7 +16,7 @@ for line in popfile:
     #print(msp_ID,file=sys.stdout)
     if pop == 'EUR':
         EUR_list.append(msp_ID)
-    elif pop == 'ASN':
+    elif pop == 'ASN' or pop == 'EAS':
         ASN_list.append(msp_ID)
 popfile.close()
 
