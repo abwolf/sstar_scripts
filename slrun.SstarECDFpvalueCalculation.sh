@@ -13,16 +13,16 @@ echo ''
 
 sstardir=~/SimulatedDemographic/Sstar/
 dir=/Genomics/akeylab/abwolf/SimulatedDemographic/Sstar/chr1_variable_ref/simulations
-admix=$( echo n1_0.1_mAfB_0.0_mBAf_0.0_mAfEu_0.0_mEuAf_0.0 )
+admix=$( echo n1_0.1_mAfB_0.0_mBAf_0.0005_mAfEu_0.0_mEuAf_0.0 )
 
 cmd=$( echo " Rscript $sstardir/bin/SstarECDFpvalueCalculation.R \n
-	--inputdir $dir/Tenn/ \n
-	--outputdir $dir/Tenn/$admix/bedfiles/  \n
-	--mdl Tenn_nonAfr \n
+	--inputdir $dir/Tenn_nomod/ \n
+	--outputdir $dir/Tenn_nomod/$admix/bedfiles/  \n
+	--mdl Tenn_nomod_nonAfr \n
 	--admix_dir /$admix/ \n
 	--admix_tag $admix \n
 	--max_chrm_admix 1000 \n
-	--ecdf $dir/Tenn/null/SstarECDF_maxchrm_9000.RData.gz \n
+	--ecdf $dir/Tenn_nomod/null/SstarECDF_maxchrm_9500.RData.gz \n
 	--filter " )
 
 # cmd=$( echo " Rscript $sstardir/bin/SstarECDFpvalueCalculation.R \n
