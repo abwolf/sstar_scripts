@@ -11,7 +11,7 @@ echo $SLURM_JOB_NAME
 echo $SLURM_ARRAY_TASK_ID
 echo ''
 
-mdl=$( echo Tenn_nomod)
+mdl=$( echo Tenn_pulsed )
 seed=$( echo ${SLURM_ARRAY_TASK_ID}${RANDOM} )
 
 n1=$( echo 0.1)
@@ -20,15 +20,11 @@ n2=$( echo 0.0)
 m_AF_B=$( echo 0.0 )
 m_B_AF=$( echo 0.0 )
 m_AF_EU=$( echo 0.0 )
-<<<<<<< HEAD
 m_EU_AF=$( echo 0.0005 )
-=======
-m_EU_AF=$( echo 0.0001 )
->>>>>>> pop_specific_ECDF
 
 eur=$( echo 1006 )   #1006
 asn=$( echo 1008 )   #1008 ; 2040
-len=$( awk 'BEGIN {print 10e6}' )
+len=$( awk 'BEGIN {print 1e6}' )
 
 tag=$(echo "$mdl"_nonAfr_"$seed"_n1_"$n1"_mAfB_"$m_AF_B"_mBAf_"$m_B_AF"_mAfEu_"$m_AF_EU"_mEuAf_"$m_EU_AF")
 dir=~/SimulatedDemographic/msprime/
@@ -36,6 +32,7 @@ sstardir=~/SimulatedDemographic/Sstar/
 
 mkdir -p RegionFiles/
 mkdir -p vcfs/
+mkdir -p SstarSigFiles/
 mkdir -p bedfiles/
 
 
