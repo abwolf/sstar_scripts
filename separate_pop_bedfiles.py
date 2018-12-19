@@ -5,6 +5,7 @@ import gzip
 
 popfile = open(sys.argv[1], 'r')
 
+AFR_list = []
 EUR_list = []
 ASN_list = []
 for line in popfile:
@@ -18,6 +19,8 @@ for line in popfile:
         EUR_list.append(msp_ID)
     elif pop == 'ASN' or pop == 'EAS':
         ASN_list.append(msp_ID)
+    elif pop == 'AFR' or pop == 'YRI':
+        AFR_list.append(msp_ID)
 popfile.close()
 
 #print(ASN_list, file=sys.stdout)
@@ -29,6 +32,7 @@ fname = str(sys.argv[2]).strip('.gz')
 
 EUR_bedfile=gzip.open(fname+'_EUR.gz','wb')
 ASN_bedfile=gzip.open(fname+'_ASN.gz','wb')
+AFR_bedfile=gzip.open(fname+'_AFR.gz','wb')
 print(fname)
 for line in bedfile:
 #    print(line.strip())
@@ -40,7 +44,10 @@ for line in bedfile:
         EUR_bedfile.write(line)
     elif msp_ID in ASN_list:
         ASN_bedfile.write(line)
+    elif msp_ID in AFR_list:
+        AFR_bedfile.write(line)
 
 bedfile.close()
 EUR_bedfile.close()
 ASN_bedfile.close()
+AFR_bedfile.close()

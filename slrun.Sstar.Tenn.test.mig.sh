@@ -11,7 +11,7 @@ echo $SLURM_JOB_NAME
 echo $SLURM_ARRAY_TASK_ID
 echo ''
 
-mdl=$( echo Tenn_pulsed )
+mdl=$( echo Tenn )
 seed=$( echo ${SLURM_ARRAY_TASK_ID}${RANDOM} )
 
 n1=$( echo 0.1)
@@ -32,7 +32,6 @@ sstardir=~/SimulatedDemographic/Sstar/
 
 mkdir -p RegionFiles/
 mkdir -p vcfs/
-mkdir -p SstarSigFiles/
 mkdir -p bedfiles/
 
 
